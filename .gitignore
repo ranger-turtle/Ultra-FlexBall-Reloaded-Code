@@ -69,6 +69,8 @@ artifacts/
 *.pidb
 *.svclog
 *.scc
+*.png
+*.anim
 
 # Chutzpah Test files
 _Chutzpah*
@@ -259,3 +261,15 @@ paket-files/
 # Python Tools for Visual Studio (PTVS)
 __pycache__/
 *.pyc
+*.wav
+*.sav
+*.controller
+*.mat
+/Assets/TextMesh Pro
+/Default Bricks
+/Level sets
+/UserSettings
+/UIElementsSchema
+/Temp
+/ProjectSettings
+/Library
