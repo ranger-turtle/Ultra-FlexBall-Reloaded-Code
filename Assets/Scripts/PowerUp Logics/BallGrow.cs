@@ -7,15 +7,15 @@ public class BallGrow : PowerUp
 	private AudioClip megaBall;
 #pragma warning restore CS0649 // Field 'BallGrow.megaBall' is never assigned to, and will always have its default value null
 
-	public override void PlaySound()
+	protected override void PlaySound()
 	{
 		if (GameManager.Instance.BallSize == BallSize.Big)
-			LevelSoundLibrary.Instance.PlaySfx(collectSound);
+			SoundManager.Instance.PlaySfx(collectSound);
 		else
-			LevelSoundLibrary.Instance.PlaySfx(megaBall);
+			SoundManager.Instance.PlaySfx(megaBall);
 	}
 
-	public override void TriggerAction()
+	protected override void TriggerAction()
 	{
 		base.TriggerAction();
 		GameManager.Instance.IncreaseBall();

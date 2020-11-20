@@ -3,10 +3,9 @@
 [RequireComponent(typeof(BoxCollider2D))]
 public class WallCollider : MonoBehaviour
 {
-	private void OnCollisionEnter2D(Collision2D collision)
+	private void Collision(GameObject gameObject)
 	{
-		GameObject collisionObj = collision.gameObject;
-		if (collisionObj.GetComponent<Ball>() || collisionObj.GetComponent<Bullet>() || collisionObj.GetComponent<PowerUp>())
-			LevelSoundLibrary.Instance.PlaySfx(LevelSoundLibrary.Instance.hitWall);
+		if (gameObject.GetComponent<IBrickBuster>() != null || gameObject.GetComponent<PowerUp>())
+			SoundManager.Instance.PlaySfx("Hit Wall");
 	}
 }

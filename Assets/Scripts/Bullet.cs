@@ -1,18 +1,27 @@
-﻿using UnityEngine;
+﻿using System.Linq;
+using UnityEngine;
 
 [RequireComponent(typeof(BoxCollider2D))]
-[RequireComponent(typeof(Rigidbody2D))]
-public class Bullet : MonoBehaviour
+public class Bullet : MonoBehaviour, IBrickBuster
 {
+	private const float FirstWallAngle = 95.0f;
 	private BoxCollider2D ballBarrier;
 	public Vector2 VelocityBeforeHit { get; private set; }
 	private int bouncePoints;
 
-	public Vector2 LastFrameVelocity { get; private set; }
-	public Vector3 LastFramePosition { get; private set; }
+	public Vector2 LastFrameVelocity { get; set; }
+	public Vector3 LastFramePosition { get; set; }
+	public Vector2 CurrentVelocity { get; set; }
+	public Vector3 LastHitPoint { get; set; }
+	public Vector2 LastHitNormal { get; set; }
+
+	public bool Teleport { get; set; }
 
 	private BoxCollider2D leftWallCollider;
 	private BoxCollider2D rightWallCollider;
+
+	[SerializeField]
+	private LayerMask layerMask;
 
 	private GameObject oblivion;
 
@@ -20,63 +29,86 @@ public class Bullet : MonoBehaviour
     {
 		ballBarrier = GameObject.Find("BallBarrier").GetComponent<BoxCollider2D>();
 		bouncePoints = GameManager.Instance.ShooterLevel;
-		GetComponent<Rigidbody2D>().velocity = new Vector2(0, 5);
-		if (GameManager.Instance.ShooterLevel < 2)
-			Physics2D.IgnoreCollision(gameObject.GetComponent<Collider2D>(), ballBarrier.GetComponent<Collider2D>());
+		CurrentVelocity = new Vector2(0, 0.08f);
+		//if (GameManager.Instance.ShooterLevel < 2)
+			//Physics2D.IgnoreCollision(gameObject.GetComponent<Collider2D>(), ballBarrier.GetComponent<Collider2D>());
 
 		leftWallCollider = GameObject.Find("LeftSideWall").GetComponent<BoxCollider2D>();
 		rightWallCollider = GameObject.Find("RightSideWall").GetComponent<BoxCollider2D>();
 		oblivion = GameObject.Find("Oblivion");
 	}
 
-	private void Update()
+	private void FixedUpdate()
 	{
-		Rigidbody2D rb = GetComponent<Rigidbody2D>();
-		//if (!Mathf.Approximately(rb.velocity.x, 0) && !Mathf.Approximately(rb.velocity.y, 0))
-		if (rb.velocity != Vector2.zero)
-			LastFrameVelocity = rb.velocity;
+		LastFrameVelocity = CurrentVelocity;
 		LastFramePosition = transform.position;
-
-		BoxCollider2D thisCollider = GetComponent<BoxCollider2D>();
-		//FIXME repair bullet stopping in midair next to wall
-		//TODO examine possible bounce angles and do randomizing bounce angles
-		if (leftWallCollider.bounds.max.x >= thisCollider.bounds.min.x || leftWallCollider.bounds.max.x >= thisCollider.bounds.max.x)
-		{
-			float offset = leftWallCollider.bounds.max.x + thisCollider.bounds.extents.x + 0.05f;
-			transform.position = new Vector3(offset, transform.position.y);
-			GetComponent<Rigidbody2D>().velocity = Vector2.Reflect(PhysicsHelper.GetAngledVelocity(85), Vector2.left) * LastFrameVelocity.magnitude;
-		}
-		else if (rightWallCollider.bounds.min.x <= thisCollider.bounds.max.x || rightWallCollider.bounds.min.x <= thisCollider.bounds.min.x)
-		{
-			float offset = rightWallCollider.bounds.min.x - thisCollider.bounds.extents.x - 0.05f;
-			transform.position = new Vector3(offset, transform.position.y);
-			GetComponent<Rigidbody2D>().velocity = Vector2.Reflect(PhysicsHelper.GetAngledVelocity(95), Vector2.right) * LastFrameVelocity.magnitude;
-		}
+		CheckIfInsideLeftWall();
+		OnCollision();
 	}
 
-	private void OnCollisionEnter2D(Collision2D collision)
+	private void OnCollision()
 	{
-		VelocityBeforeHit = GetComponent<Rigidbody2D>().velocity;
-		if (collision.gameObject.GetComponent<Brick>() || collision.collider == ballBarrier)
+		VelocityBeforeHit = CurrentVelocity;
+
+		RaycastHit2D[] boxCastHit = Physics2D.BoxCastAll(transform.position, GetComponent<BoxCollider2D>().size, 0, CurrentVelocity, CurrentVelocity.magnitude, layerMask).Where(bch => !bch.collider.isTrigger).ToArray();
+		if (boxCastHit.Length > 0)
 		{
-			bouncePoints--;
-			if (bouncePoints == 0)
-				Destroy(gameObject);
-			else
-				GetComponent<Rigidbody2D>().velocity = PhysicsHelper.GenerateReflectedVelocity(LastFrameVelocity, collision);
-			//Debug.Log($"Bounce points: {bouncePoints}");
+			Vector2 totalNormal = Vector2.zero;
+			RaycastHit2D firstRaycast = boxCastHit[0];
+			float x = firstRaycast.normal.x != 0 ? firstRaycast.point.x + (GetComponent<BoxCollider2D>().bounds.extents.x + .01f) * firstRaycast.normal.x : firstRaycast.centroid.x;
+			float y = firstRaycast.normal.y != 0 ? firstRaycast.point.y + (GetComponent<BoxCollider2D>().bounds.extents.y + .01f) * firstRaycast.normal.y : firstRaycast.centroid.y;
+			transform.position = new Vector2(x, y);
+
+			//if (boxCastHit[0].collider.GetComponent<Brick>() && totalNormal.normalized.y > 0)
+			//Debug.Break();
+
+			if (firstRaycast.collider.GetComponent<Brick>() || firstRaycast.collider == ballBarrier)
+			{
+				bouncePoints--;
+				if (bouncePoints == 0)
+				{
+					if (firstRaycast.collider.GetComponent<Brick>() || firstRaycast.collider == ballBarrier)
+						Destroy(gameObject);
+				}
+				else
+					CurrentVelocity = PhysicsHelper.GenerateReflectedVelocity(LastFrameVelocity, firstRaycast.normal);
+				//Debug.Log($"Bounce points: {bouncePoints}");
+			}
+			else if (!firstRaycast.collider.GetComponent<Paddle>())
+				CurrentVelocity = PhysicsHelper.GenerateReflectedVelocity(LastFrameVelocity, firstRaycast.normal);
+			foreach (RaycastHit2D raycastHit2D in boxCastHit)
+			{
+				LastHitNormal = raycastHit2D.normal;
+				LastHitPoint = raycastHit2D.point;
+				raycastHit2D.collider.gameObject.SendMessage("Collision", gameObject, SendMessageOptions.DontRequireReceiver);
+			}
+			Debug.Log($"Normal: {totalNormal.normalized}");
 		}
-		else if (!collision.gameObject.GetComponent<Paddle>())
-			GetComponent<Rigidbody2D>().velocity = PhysicsHelper.GenerateReflectedVelocity(LastFrameVelocity, collision);
+		else
+			transform.position = new Vector2(transform.position.x + CurrentVelocity.x, transform.position.y + CurrentVelocity.y);
+		CheckIfOblivion();
+		CheckIfAboveBallBarrier();
 	}
 
-	private void OnTriggerStay2D(Collider2D collision)
+	private void CheckIfOblivion()
 	{
-		if (collision.gameObject == oblivion)
+		if (GetComponent<BoxCollider2D>().bounds.max.y < oblivion.GetComponent<BoxCollider2D>().bounds.min.y)
+			Destroy(gameObject);
+	}
+
+	private void CheckIfAboveBallBarrier()
+	{
+		if (GetComponent<BoxCollider2D>().bounds.min.y > ballBarrier.GetComponent<BoxCollider2D>().bounds.max.y)
+			Destroy(gameObject);
+	}
+
+	private void CheckIfInsideLeftWall()
+	{
+		Bounds bulletColliderBounds = GetComponent<BoxCollider2D>().bounds;
+		if (leftWallCollider.bounds.Contains(new Vector3(bulletColliderBounds.min.x, bulletColliderBounds.min.y, leftWallCollider.transform.position.z)))
 		{
-			BoxCollider2D collider = GetComponent<BoxCollider2D>();
-			if (collision.bounds.max.y > collider.bounds.max.y)
-				Destroy(gameObject);
+			CurrentVelocity = PhysicsHelper.GetAngledVelocity(FirstWallAngle) * CurrentVelocity.magnitude;
+			transform.position = new Vector3(leftWallCollider.bounds.max.x + bulletColliderBounds.extents.x + .09f, transform.position.y, transform.position.z);
 		}
 	}
 }

@@ -6,10 +6,9 @@ public class ShutterAnimationManager : MonoBehaviour
 {
 	[SerializeField]
 	private bool covered = true;
-	private bool uncovered = true;
 
 	public bool Covered => covered;
-	public bool Uncovered => uncovered;
+	public bool Uncovered { get; private set; } = true;
 
 	[SerializeField]
 #pragma warning disable CS0649 // Field 'ShutterAnimationManager.coverMaskTransform' is never assigned to, and will always have its default value null
@@ -35,9 +34,9 @@ public class ShutterAnimationManager : MonoBehaviour
 
 	public void Cover(IEnumerator doAfterCover)
 	{
-		if (uncovered)
+		if (Uncovered)
 		{
-			uncovered = false;
+			Uncovered = false;
 			StartCoroutine(CoverCoroutine());
 			StartCoroutine(doAfterCover);
 		}
@@ -45,7 +44,6 @@ public class ShutterAnimationManager : MonoBehaviour
 
 	public void Uncover() => StartCoroutine(UncoverCoroutine());
 
-	//FIXME prevent covering when animation is on
 	private IEnumerator CoverCoroutine()
 	{
 		float screenWidth = canvasTransform.rect.width;
@@ -72,6 +70,6 @@ public class ShutterAnimationManager : MonoBehaviour
 			coverMaskTransform.sizeDelta = new Vector2(screenWidth * scale, screenHeight * scale);
 			yield return new WaitForSeconds(increment / 4);
 		}
-		uncovered = true;
+		Uncovered = true;
 	}
 }

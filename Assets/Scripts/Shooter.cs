@@ -3,19 +3,6 @@ using UnityEngine;
 
 public class Shooter : MonoBehaviour
 {
-	#region Singleton
-
-	public static Shooter Instance { get; private set; }
-
-	void Awake()
-	{
-		if (Instance)
-			Destroy(Instance);
-		else
-			Instance = this;
-	}
-	#endregion
-
 	private GameObject lShooter;
 	private GameObject rShooter;
 
@@ -52,16 +39,18 @@ public class Shooter : MonoBehaviour
 		do
 		{
 			float seconds = 0.6f / GameManager.Instance.ShooterLevel;
-			LevelSoundLibrary.Instance.PlaySfx(LevelSoundLibrary.Instance.bulletShoot);
+			SoundManager.Instance.PlaySfx("Bullet Shoot");
 			Instantiate(bulletPrefab, lShooter.transform.position, Quaternion.identity);
+			ParticleManager.Instance.GenerateShootEffect(lShooter.transform.position);
 			Instantiate(bulletPrefab, rShooter.transform.position, Quaternion.identity);
+			ParticleManager.Instance.GenerateShootEffect(rShooter.transform.position);
 			yield return new WaitForSeconds(seconds);
 		} while (Input.GetMouseButton(0));
 		canStartShoot = true;
 	}
 
 	// Update is called once per frame
-	void Update()
+	void FixedUpdate()
     {
         if (Input.GetMouseButtonDown(0) && canStartShoot)
 		{

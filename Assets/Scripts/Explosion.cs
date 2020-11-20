@@ -1,40 +1,34 @@
 ﻿using System.Collections;
 using UnityEngine;
 
+//TODO make bang sound only after first subsequent explosion
 [RequireComponent(typeof(BoxCollider2D))]
 public class Explosion : MonoBehaviour
 {
-	private LevelSoundLibrary levelSoundLibrary = LevelSoundLibrary.Instance;
+	protected virtual string ExplosionSoundName { get; } = "Explosion";
 
-	private void Start()
-	{
-		Debug.Log("Explosion begin");
-		levelSoundLibrary.PlaySfx(levelSoundLibrary.explosion);
-		//GetComponent<Rigidbody2D>().AddForce(new Vector2(0, 0.3f));
-	}
+	private void Start() => SoundManager.Instance.PlaySfx(ExplosionSoundName);
 
-	private void Activate() => GetComponent<BoxCollider2D>().enabled = true;
+	protected void Destroy() => Destroy(gameObject);
 
-	private void Destroy() => Destroy(gameObject);
-
-	private void OnTriggerEnter2D(Collider2D collider)
-	{
-		//Debug.Break();
-		Debug.Log("Explosion hit");
-		StartCoroutine(WaitForExplosion(collider));
-	}
+	protected virtual void OnTriggerEnter2D(Collider2D collider) => StartCoroutine(WaitForExplosion(collider));
 
 	private IEnumerator WaitForExplosion(Collider2D collider)
 	{
-		yield return new WaitForSeconds(0.050f);
+		yield return new WaitForSeconds(0.010f);
 		//BONUS try finding better way how to support destroyed bricks
-		Brick brick = collider.gameObject.GetComponent<Brick>();
-		if (brick && !brick.Broken)
+		//BONUS try fixing uneven explosion assign
+		if (collider)
 		{
-			//TODO make power-up to jump to far-left, near-left, near-right and far-right
-			PowerUpManager.Instance.IncreaseMeter(1, brick.transform.position, new Vector2(0.3f, 0.5f));
-			if (!brick.brickType.Properties.ExplosionResistant)
-				brick.Break(brick.brickType.Properties.Points / 2, true);
+			Brick brick = collider.gameObject.GetComponent<Brick>();
+			if (brick && !brick.Broken)
+			{
+				brick.TryIncreasePowerUpField();
+				if (!brick.brickType.Properties.ExplosionResistant)
+				{
+					brick.Break(brick.brickType.Properties.Points / 2, force: true);
+				}
+			}
 		}
 	}
 }

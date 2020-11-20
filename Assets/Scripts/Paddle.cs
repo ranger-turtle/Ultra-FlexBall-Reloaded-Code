@@ -1,5 +1,8 @@
 ﻿using UnityEngine;
 
+//TODO make side bounce
+//TODO make sparkles sprinkling from paddle side
+//TODO make sparkles sprinkling from paddle when ball hit when moving fast
 public class Paddle : MonoBehaviour
 {
 	#region Singleton
@@ -25,12 +28,13 @@ public class Paddle : MonoBehaviour
 #pragma warning restore CS0649 // Field 'Paddle.rightBound' is never assigned to, and will always have its default value null
 	private GameObject magnet;
 	private GameObject shooter;
+	private GameObject megaMissileTurret;
 	private GameObject paddleElectrodes;
 	[SerializeField]
 #pragma warning disable CS0649 // Field 'Paddle.sideElectrodes' is never assigned to, and will always have its default value null
 	private GameObject sideElectrodes;
 #pragma warning restore CS0649 // Field 'Paddle.sideElectrodes' is never assigned to, and will always have its default value null
-	private LevelSoundLibrary levelSoundLibrary;
+	private SoundManager soundManager;
 	private float ballBounceFactor;
 
 	private float currentMouseX;
@@ -52,6 +56,12 @@ public class Paddle : MonoBehaviour
 		set => shooter.SetActive(value);
 	}
 
+	public bool MegaMissileActive
+	{
+		get => megaMissileTurret.activeSelf;
+		set => megaMissileTurret.SetActive(value);
+	}
+
 	public bool ProtectiveBarrierActive
 	{
 		get => paddleElectrodes.activeSelf;
@@ -66,11 +76,12 @@ public class Paddle : MonoBehaviour
 	{
 		mainCamera = FindObjectOfType<Camera>();
 		Cursor.visible = false;
-		levelSoundLibrary = GameObject.Find("Game").GetComponent<LevelSoundLibrary>();
+		soundManager = GameObject.Find("Game").GetComponent<SoundManager>();
 		SetLength(GameManager.Instance.PaddleLengthLevel);
 		Debug.Log($"Paddle Length: {GameManager.Instance.PaddleLengthLevel}");
 		magnet = transform.Find("magnet").gameObject;
 		shooter = transform.Find("shooter").gameObject;
+		megaMissileTurret = transform.Find("megaMissileTurret").gameObject;
 		paddleElectrodes = transform.Find("barrierElectrodes").gameObject;
 		//Screen.SetResolution(640, 480, true);
 		//currentMouseX = transform.position.x;
@@ -106,6 +117,8 @@ public class Paddle : MonoBehaviour
 		}
 	}
 
+	private float RoundToTwoPlaces(float number) => Mathf.Round(number * 100.0f) / 100.0f;
+
 	private float EvaluateAngleForFutureVelocity(float difference, float paddleLengthAndColliderBoundSum, float maxBounceAngleRange)
 	{
 		float maxDifference = paddleLengthAndColliderBoundSum / 2.0f;
@@ -113,59 +126,70 @@ public class Paddle : MonoBehaviour
 		return 90.00f - (maxBounceAngleRange * differenceRatio);
 	}
 
-	private void OnCollisionEnter2D(Collision2D collision)
+	private void Collision(GameObject bouncedObject)
 	{
-		if (collision.gameObject.GetComponent<Ball>() || collision.gameObject.GetComponent<Bullet>())
+		if (bouncedObject.GetComponent<Ball>() || bouncedObject.GetComponent<Bullet>() || bouncedObject.GetComponent<SpaceDjoel>())
 		{
-			Rigidbody2D rb = collision.gameObject.GetComponent<Rigidbody2D>();
-			Vector3 hitPoint1 = collision.GetContact(0).point;
-			Vector3 hitPoint2 = collision.GetContact(1).point;
+			IBrickBuster brickBuster = bouncedObject.GetComponent<IBrickBuster>();
+			//Vector3 hitPoint1 = collision.GetContact(0).point;
+			//Vector3 hitPoint2 = collision.GetContact(1).point;
 			Vector3 paddleCenter = new Vector3(transform.position.x, transform.position.y);
-
-			rb.velocity = Vector2.zero;
 
 			//float hitPointX = (hitPoint2.x + hitPoint1.x) / 2.0f;
 			//float difference = Mathf.Round((paddleCenter.x - hitPointX) * 100.0f) / 100.0f;
-			float difference = Mathf.Round((paddleCenter.x - collision.gameObject.transform.position.x) * 100.0f) / 100.0f;
-			float maxBounceAngleRange = collision.gameObject.GetComponent<Ball>() ? 50.00f : 20.00f;
+			float difference = RoundToTwoPlaces(paddleCenter.x - bouncedObject.transform.position.x);
+			float maxBounceAngleRange = bouncedObject.GetComponent<Ball>() ? 50.00f : 20.00f;
 			float paddleWidth = GetComponent<BoxCollider2D>().size.x;
-			float ballWidth = collision.gameObject.GetComponent<BoxCollider2D>().size.x;
+			float ballWidth = bouncedObject.GetComponent<BoxCollider2D>().size.x;
 			float angle = EvaluateAngleForFutureVelocity(difference, paddleWidth + ballWidth, maxBounceAngleRange);
 
-
-			if (collision.gameObject.GetComponent<Ball>())
+			if (bouncedObject.GetComponent<Ball>())
 			{
+				Ball ball = brickBuster as Ball;
 				Vector2 futureVelocity;
-				Ball ball = collision.gameObject.GetComponent<Ball>();
+				//Ball ball = collision.gameObject.GetComponent<Ball>();
 				if (ball.BallSize != (int)GameManager.Instance.BallSize)
-					levelSoundLibrary.PlaySfx(levelSoundLibrary.ballSizeChange);
+					soundManager.PlaySfx("Ball Size Change");
 				ball.UpdateSize();
-				if (!GameManager.Instance.MagnetPaddle)
+				ball.FinishThrust();
+				ParticleManager.Instance.RemoveThrustingFlame(ball.gameObject);
+				if (!GameManager.Instance.MagnetPaddle || brickBuster.CurrentVelocity.magnitude >= BallManager.maxBallSpeed * 0.8f)
 				{
-					futureVelocity = PhysicsHelper.GetAngledVelocity(angle) * Mathf.Max(rb.velocity.magnitude / 2, BallManager.Instance.initialForce);
-					levelSoundLibrary.PlaySfx(levelSoundLibrary.normalBallBounce);
-					rb.velocity = futureVelocity;
+					futureVelocity = PhysicsHelper.GetAngledVelocity(angle) * Mathf.Max(brickBuster.CurrentVelocity.magnitude * 0.80f, BallManager.minBallSpeed);
+					futureVelocity = new Vector2(RoundToTwoPlaces(futureVelocity.x), futureVelocity.y);
+					if (brickBuster.CurrentVelocity.magnitude < BallManager.maxBallSpeed * 0.8f)
+						soundManager.PlaySfx("Normal Ball Bounce");
+					else
+						soundManager.PlaySfx(DefaultSoundLibrary.Instance.quickBallBounce);
+					brickBuster.CurrentVelocity = futureVelocity;
 				}
 				else
 				{
-					float stickXPosition = difference;
-					//if (ball.transform.position.x < collision.GetContact(0).point.x || ball.transform.position.x > collision.GetContact(1).point.x)
-						//difference = ball.transform.position.x;
-					futureVelocity = PhysicsHelper.GetAngledVelocity(angle) * BallManager.Instance.initialForce;
-					levelSoundLibrary.PlaySfx(levelSoundLibrary.magnetStick);
+					futureVelocity = PhysicsHelper.GetAngledVelocity(angle) * BallManager.minBallSpeed;
+					futureVelocity = new Vector2(RoundToTwoPlaces(futureVelocity.x), futureVelocity.y);
+					if (brickBuster.CurrentVelocity.magnitude < BallManager.maxBallSpeed * 0.5f)
+						soundManager.PlaySfx("Magnet Stick");
+					else
+						soundManager.PlaySfx(DefaultSoundLibrary.Instance.quickBallBounce);
 					ball.StickToPaddle(futureVelocity, difference);
 				}
 
 				if (GameManager.Instance.DescendingBricks)
 				{
-					levelSoundLibrary.PlaySfx(levelSoundLibrary.brickDescend);
+					soundManager.PlaySfx("Brick Descend");
 					GameManager.Instance.DescendBrickRows();
 				}
 			}
-			else if (collision.gameObject.GetComponent<Bullet>())
+			else if (bouncedObject.GetComponent<Bullet>())
 			{
-				//TODO levelSoundLibrary.PlaySfx(levelSoundLibrary.bulletBounce);
-				rb.velocity = PhysicsHelper.GetAngledVelocity(angle) * BallManager.Instance.initialForce;
+				soundManager.PlaySfx("Bullet Bounce");
+				brickBuster.CurrentVelocity = PhysicsHelper.GetAngledVelocity(angle) * brickBuster.CurrentVelocity.magnitude;
+			}
+			else if (bouncedObject.GetComponent<SpaceDjoel>())
+			{
+				Vector2 futureVelocity = PhysicsHelper.GetAngledVelocity(angle) * Mathf.Max(brickBuster.CurrentVelocity.magnitude * 0.750f, SpaceDjoelManager.paddleBounceForce);
+				soundManager.PlaySfx("Normal Ball Bounce");
+				brickBuster.CurrentVelocity = futureVelocity;
 			}
 		}
 	}

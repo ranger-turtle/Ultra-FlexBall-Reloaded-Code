@@ -25,19 +25,22 @@ public class BallManager : MonoBehaviour
 	private Ball ballPrefab;
 #pragma warning restore CS0649 // Field 'BallManager.ballPrefab' is never assigned to, and will always have its default value null
 
+	[SerializeField]
+	private HUDManager hudManager;
+
 	private Ball initialBall;
 
-	internal readonly float initialForce = 6.0f;
+	internal const float minBallSpeed = 0.10f;
+	internal const float maxBallSpeed = 0.17f;
+	internal const float acceleration = 1.001f;
 
-	private LevelSoundLibrary levelSoundLibrary;
+	private SoundManager soundManager;
 
 	public int BallNumber => balls.Count;
 
 	public void Start()
 	{
-		BoxCollider2D paddleCollider = Paddle.Instance.GetComponent<BoxCollider2D>();
-		BoxCollider2D ballCollider = ballPrefab.GetComponent<BoxCollider2D>();
-		levelSoundLibrary = GameObject.Find("Game").GetComponent<LevelSoundLibrary>();
+		soundManager = SoundManager.Instance;
 		InitBall();
 	}
 
@@ -47,7 +50,7 @@ public class BallManager : MonoBehaviour
 		float StuckY = Paddle.Instance.GetComponent<BoxCollider2D>().bounds.max.y + ballPrefab.GetComponent<BoxCollider2D>().bounds.extents.y + 0.3f;
 		Vector3 startingPosition = new Vector3(paddlePosition.x, StuckY);
 		initialBall = Instantiate(ballPrefab, startingPosition, Quaternion.identity);
-		initialBall.StickToPaddle(PhysicsHelper.GetAngledVelocity(90) * initialForce, 0);
+		initialBall.StickToPaddle(Vector2.up * minBallSpeed, 0);
 		balls = new List<GameObject>() { initialBall.gameObject };
 	}
 
@@ -59,12 +62,29 @@ public class BallManager : MonoBehaviour
 	}
 
 
-	internal GameObject CloneBall(GameObject originalBall)
+	internal GameObject CloneBall(GameObject originalBall, bool addToCollection = true)
 	{
 		GameObject newBallObject = Instantiate(originalBall, originalBall.transform.position, Quaternion.identity);
-		newBallObject.GetComponent<Ball>().SetBallSizeWithoutAnimation((int)GameManager.Instance.BallSize);
-		newBallObject.GetComponent<Ball>().StuckToPaddle = originalBall.GetComponent<Ball>().StuckToPaddle;
+		newBallObject.GetComponent<Ball>().CloneProperties(originalBall.GetComponent<Ball>());
+		if (addToCollection)
+			balls.Add(newBallObject);
 		return newBallObject;
+	}
+
+	private void ApplyParticlesToBalls(Action<GameObject, BallSize> applyParticlesToBall)
+	{
+		foreach (var ball in balls)
+			applyParticlesToBall(ball, (BallSize)ball.GetComponent<Ball>().BallSize);
+	}
+
+	internal void ApplyParticlesToExplosiveBalls() => ApplyParticlesToBalls(ParticleManager.Instance.GenerateExplosiveBallParticles);
+
+	internal void ApplyParticlesToPenetratingBalls() => ApplyParticlesToBalls(ParticleManager.Instance.GeneratePenetratingBallParticles);
+
+	internal void RemoveParticlesFromBalls()
+	{
+		foreach (var ball in balls)
+			ParticleManager.Instance.RemoveBallUpgradeParticles(ball);
 	}
 
 	public void SplitBall()
@@ -72,8 +92,8 @@ public class BallManager : MonoBehaviour
 		List<GameObject> newBalls = new List<GameObject>();
 		foreach (var ball in balls)
 		{
-			GameObject newBallObject = CloneBall(ball);
-			Vector3 originalBallVelocity = ball.GetComponent<Rigidbody2D>().velocity;
+			GameObject newBallObject = CloneBall(ball, false);
+			Vector3 originalBallVelocity = ball.GetComponent<Ball>().CurrentVelocity;
 			Vector3 newBallVelocity = new Vector3(originalBallVelocity.x, originalBallVelocity.y);
 			if (originalBallVelocity.x != 0 && originalBallVelocity.y != 0)
 			{
@@ -82,7 +102,7 @@ public class BallManager : MonoBehaviour
 				else
 					newBallVelocity.x = -newBallVelocity.x;
 			}
-			newBallObject.GetComponent<Rigidbody2D>().velocity = newBallVelocity;
+			newBallObject.GetComponent<Ball>().CurrentVelocity = newBallVelocity;
 			newBalls.Add(newBallObject);
 		}
 		balls = balls.Concat(newBalls).ToList();
@@ -93,23 +113,23 @@ public class BallManager : MonoBehaviour
 		GameManager.Instance.ExplosiveBall = false;
 		GameManager.Instance.PenetratingBall = false;
 		List<GameObject> newBalls = new List<GameObject>();
-		GameObject originBall = balls[UnityEngine.Random.Range(0, balls.Count - 1)];
+		RemoveParticlesFromBalls();
+		GameObject originBall = balls[UnityEngine.Random.Range(0, balls.Count)];
 		const int ballNumber = 30;
 		for (int i = 0; i < ballNumber; i++)
 		{
-			Rigidbody2D originBallRb = originBall.GetComponent<Rigidbody2D>();
+			Ball originBallScript = originBall.GetComponent<Ball>();
 			float angle = Mathf.PI*2.0f / ballNumber * i + 0.1f;
 			//float speed = Mathf.Max(originBallRb.velocity.x, originBallRb.velocity.y);
 			//Debug.Log($"Velocity: {originBallRb.velocity}");
 			//Debug.Log($"Magnitude: {magnitude}");
-			float x = originBall.GetComponent<Rigidbody2D>().velocity.x;
-			float y = originBall.GetComponent<Rigidbody2D>().velocity.y;
+			float x = originBallScript.CurrentVelocity.x;
+			float y = originBallScript.CurrentVelocity.y;
 			//Quaternion rotation = Quaternion.AngleAxis(angle, Vector3.up);
 			//Vector3 direction = rotation * Vector3.forward;
 			Vector2 direction = new Vector3(Mathf.Cos(angle), Mathf.Sign(angle));
-			Debug.Log($"Direction: {direction}");
 			GameObject newBallObject = Instantiate(originBall, originBall.transform.position, Quaternion.identity);
-			newBallObject.GetComponent<Rigidbody2D>().velocity = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle)) * Ball.maxBallVelocityMagnitude;
+			newBallObject.GetComponent<Ball>().CurrentVelocity = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle)) * maxBallSpeed;
 			newBalls.Add(newBallObject);
 		}
 		balls = balls.Concat(newBalls).ToList();
@@ -138,13 +158,13 @@ public class BallManager : MonoBehaviour
 		}
 	}
 
-	private void Update()
+	private void FixedUpdate()
 	{
 		if (Input.GetMouseButtonDown(0) && balls.Any(b => b.GetComponent<Ball>().StuckToPaddle))
 		{
 			Paddle.Instance.MagnetActive = GameManager.Instance.MagnetPaddle;
 			ReleaseBalls();
-			levelSoundLibrary.PlaySfx(levelSoundLibrary.normalBallBounce);
+			soundManager.PlaySfx("Normal Ball Bounce");
 		}
 	}
 

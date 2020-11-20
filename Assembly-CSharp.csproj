@@ -54,11 +54,14 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Assets\Scripts\Paddle.cs" />
+    <Compile Include="Assets\Scripts\Test\TestBrick.cs" />
     <Compile Include="Assets\Scripts\Bullet.cs" />
-    <Compile Include="Assets\Scripts\ProtectiveBarrierRenderer.cs" />
+    <Compile Include="Assets\Scripts\PowerUp Logics\SpaceDjoels.cs" />
     <Compile Include="Assets\Scripts\PowerUp Logics\PaddleShrink.cs" />
+    <Compile Include="Assets\Scripts\IBrickBuster.cs" />
     <Compile Include="Assets\Scripts\Ball.cs" />
     <Compile Include="Assets\Scripts\PowerUp Logics\ExplosiveMultiplier.cs" />
+    <Compile Include="Assets\Scripts\ZapRenderer.cs" />
     <Compile Include="Assets\Scripts\PowerUp Logics\PenetratingBall.cs" />
     <Compile Include="Assets\Scripts\PowerUp Logics\MegaSplit.cs" />
     <Compile Include="Assets\Scripts\PowerUp Logics\ExtraPaddle.cs" />
@@ -66,16 +69,18 @@
     <Compile Include="Assets\Scripts\PowerUp Logics\BallGrow.cs" />
     <Compile Include="Assets\Scripts\PowerUp Logics\PaddleGrow.cs" />
     <Compile Include="Assets\Scripts\WallCollider.cs" />
+    <Compile Include="Assets\Scripts\SpaceDjoelManager.cs" />
     <Compile Include="Assets\Scripts\ShutterAnimationManager.cs" />
     <Compile Include="Assets\Scripts\PowerUp Logics\PowerUp.cs" />
     <Compile Include="Assets\Scripts\TextureManager.cs" />
-    <Compile Include="Assets\Scripts\LevelSoundLibrary.cs" />
+    <Compile Include="Assets\Scripts\DefaultSoundLibrary.cs" />
     <Compile Include="Assets\Scripts\PowerUp Logics\FallingBlocks.cs" />
     <Compile Include="Assets\Scripts\Brick.cs" />
     <Compile Include="Assets\Scripts\PowerUp Logics\MagnetPaddle.cs" />
     <Compile Include="Assets\Scripts\SharedGameData.cs" />
     <Compile Include="Assets\Scripts\PhysicsHelper.cs" />
     <Compile Include="Assets\Scripts\PowerUp Logics\ProtectiveBarrierIncrease.cs" />
+    <Compile Include="Assets\Scripts\SpaceDjoel.cs" />
     <Compile Include="Assets\Scripts\GameManager.cs" />
     <Compile Include="Assets\Scripts\ProtectiveBarrier.cs" />
     <Compile Include="Assets\Scripts\BallManager.cs" />
@@ -87,18 +92,24 @@
     <Compile Include="Assets\Scripts\PowerUp Logics\RegularMultiplier.cs" />
     <Compile Include="Assets\Scripts\ScrollingImage.cs" />
     <Compile Include="Assets\Scripts\LevelPersistentData.cs" />
+    <Compile Include="Assets\Scripts\Test\TestBall.cs" />
     <Compile Include="Assets\Scripts\BrickType.cs" />
     <Compile Include="Assets\Scripts\PowerUp Logics\SplitBall.cs" />
     <Compile Include="Assets\Scripts\PowerUp Logics\ExplosiveBall.cs" />
     <Compile Include="Assets\Scripts\Outside Game\CommandLineArgumentProcessor.cs" />
     <Compile Include="Assets\Scripts\Outside Game\LevelSetListManager.cs" />
+    <Compile Include="Assets\Scripts\ParticleManager.cs" />
+    <Compile Include="Assets\Scripts\SoundManager.cs" />
     <Compile Include="Assets\Scripts\Explosion.cs" />
     <Compile Include="Assets\Scripts\HUDManager.cs" />
     <Compile Include="Assets\Scripts\PowerUp Logics\BallShrink.cs" />
     <Compile Include="Assets\Scripts\FileImporter.cs" />
     <Compile Include="Assets\Scripts\Outside Game\GameLoader.cs" />
     <Compile Include="Assets\Scripts\PowerUpManager.cs" />
-    <Compile Include="Assets\Scripts\SpaceDjoel.cs" />
+    <Compile Include="Assets\Scripts\MegaMissileTurret.cs" />
+    <Compile Include="Assets\Scripts\MegaExplosion.cs" />
+    <Compile Include="Assets\Scripts\MegaMissile.cs" />
+    <Compile Include="Assets\Scripts\PowerUp Logics\ExtraMegaMissile.cs" />
   </ItemGroup>
   <ItemGroup>
      <None Include="Assets\TextMesh Pro\Shaders\TMPro.cginc" />

@@ -2,7 +2,7 @@
 
 public class MagnetPaddle : PowerUp
 {
-	public override void TriggerAction()
+	protected override void TriggerAction()
 	{
 		base.TriggerAction();
 		GameManager.Instance.ActivateMagnet();

@@ -34,9 +34,9 @@ public class LevelSetListManager : MonoBehaviour
 
 	private void Start()
     {
-		string[] levelSetFileNames = Directory.GetFiles("Level Sets", "*.nlev", SearchOption.TopDirectoryOnly)
+		string[] levelSetFileNames = Directory.GetFiles("Level sets", "*.nlev", SearchOption.TopDirectoryOnly)
 			.Select(lsn => Path.GetFileNameWithoutExtension(lsn)).ToArray();
-		IEnumerable<LevelSetData.LevelSet> levelSets = levelSetFileNames.Select(lsn => FileImporter.LoadLevelSet(lsn));
+		IEnumerable<LevelSetData.LevelSet> levelSets = levelSetFileNames.Select(lsn => FileImporter.LoadLevelSet("Level sets", lsn));
 		LevelSetTemporaryData[] levelSetTemporaryData = levelSets.Select(ls => new LevelSetTemporaryData
 		{
 			levelSetName = ls.LevelSetProperties.Name,

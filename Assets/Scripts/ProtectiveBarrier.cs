@@ -26,7 +26,7 @@ public class ProtectiveBarrier : MonoBehaviour
 			}
 			else
 				Debug.Log("Withstood");
-			LevelSoundLibrary.Instance.PlaySfx(LevelSoundLibrary.Instance.protectiveBarrierHit);
+			SoundManager.Instance.PlaySfx("Protective Barrier Hit");
 		}
 	}
 }

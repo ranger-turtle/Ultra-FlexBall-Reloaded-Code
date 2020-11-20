@@ -1,11 +1,13 @@
-﻿using System.IO;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 
-[RequireComponent(typeof(AudioSource))]
-public class LevelSoundLibrary : MonoBehaviour
+public class DefaultSoundLibrary : MonoBehaviour
 {
 	#region Singleton
-	public static LevelSoundLibrary Instance { get; private set; }
+
+	public static DefaultSoundLibrary Instance { get; private set; }
 
 	void Awake()
 	{
@@ -30,38 +32,18 @@ public class LevelSoundLibrary : MonoBehaviour
 	public AudioClip brickDescend;
 	public AudioClip losePaddle;
 	public AudioClip bulletShoot;
-	public AudioClip ballPush;
+	public AudioClip bulletBounce;
+	public AudioClip ballThrust;
 	public AudioClip teleport;
+	public AudioClip megaMissileShoot;
+	public AudioClip megaExplosion;
 	public AudioClip protectiveBarrierHit;
+	public AudioClip quickBallBounce;
 	public AudioClip win;
 
 	public AudioClip normalBrickBreak;
+	public AudioClip explosiveBrickHit;
 	public AudioClip indestructibleBrickHit;
 	public AudioClip changingBrickHit;
-
-	private AudioSource audioSource;
-
-	private void Start()
-	{
-		audioSource = GetComponent<AudioSource>();
-	}
-
-	public void PlaySfx(AudioClip clip)
-	{
-		if (clip)
-			audioSource.PlayOneShot(clip);
-	}
-
-	public void LoadCustomAudio(string levelName)
-	{
-		try
-		{
-			//UNDONE custom audio import
-			normalBallBounce = FileImporter.LoadAudioClip(levelName, "laser bounce");
-		}
-		catch (FileNotFoundException fnfe)
-		{
-			Debug.LogError($"File {fnfe.Message}.wav is missing. Please erase sound file name in level editor or find file.");
-		}
-	}
+	public AudioClip plateHit;
 }

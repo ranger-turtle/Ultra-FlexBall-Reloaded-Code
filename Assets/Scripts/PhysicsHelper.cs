@@ -19,12 +19,14 @@ internal class PhysicsHelper
 			return new Vector2(-lastFrameVelocity.x, -lastFrameVelocity.y);
 	}
 
+	/// <summary>
+	/// Angle is count from left vector.
+	/// </summary>
+	/// <param name="angle"></param>
+	/// <returns></returns>
 	public static Vector2 GetAngledVelocity(float angle)
 	{
 		angle *= Mathf.Deg2Rad;
 		return new Vector2(-Mathf.Cos(angle), Mathf.Sin(angle));
 	}
-
-	public static float GetAngleInFullTurnRange(Vector2 vector)
-		=> Vector2.Angle(Vector2.up, vector);
 }

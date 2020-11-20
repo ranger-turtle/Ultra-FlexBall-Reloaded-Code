@@ -1,22 +1,29 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 
 public class LevelSetLoader : MonoBehaviour
 {
-	[SerializeField]
-	private string levelSetFileName = "wert";
-
     // Start is called before the first frame update
     void Start()
     {
-		levelSetFileName = LoadedGameData.LevelSetFileName;
-		BrickType[] DefaultBrickTypes = LoadedGameData.DefaultBrickTypes ?? FileImporter.LoadBricks();
-		string levelSetCustomBricksPath = FileImporter.GetElementInLevelSetDirectory(levelSetFileName, "Bricks");
-		BrickType[] CustomBrickTypes = Directory.Exists(levelSetCustomBricksPath) ? FileImporter.LoadBricks(levelSetCustomBricksPath) : (new BrickType[0]);
+		string levelSetDirectory = LoadedGameData.LevelSetDirectory;
+		string levelSetFileName = LoadedGameData.LevelSetFileName;
 		LevelSetData.LevelSet levelSet;
+		levelSet = FileImporter.LoadLevelSet(levelSetDirectory, levelSetFileName);
+		BrickType[] DefaultBrickTypes = LoadedGameData.DefaultBrickTypes ?? FileImporter.LoadBricks();
+		BrickType[] CustomBrickTypes = new BrickType[0];
+		//if loaded level set has external files
+		if (FileImporter.LevelSetExternalFileDirectoryExists(levelSetDirectory, levelSetFileName))
+		{
+			HashSet<string> missingFileNames = new HashSet<string>();
+			SoundManager.Instance.LoadSounds(levelSetFileName, LoadedGameData.TestMode, levelSetDirectory);
+			string levelSetCustomBricksPath = FileImporter.GetDirectoryNameInLevelSetDirectory(levelSetDirectory, levelSetFileName, "Bricks");
+			if (Directory.Exists(levelSetCustomBricksPath))
+				CustomBrickTypes = FileImporter.LoadBricks(missingFileNames, levelSetCustomBricksPath);
+		}
 		if (LoadedGameData.TestMode == TestMode.None)
 		{
-			levelSet = FileImporter.LoadLevelSet(levelSetFileName);
 			LevelPersistentData levelPersistentData = null;
 			if (LoadedGameData.Continue)
 				levelPersistentData = FileImporter.LoadLevelPersistentData(levelSetFileName);
@@ -24,7 +31,6 @@ public class LevelSetLoader : MonoBehaviour
 		}
 		else
 		{
-			levelSet = FileImporter.LoadLevelSetWithFullPath(levelSetFileName);
 			GameManager.Instance.InitLevel(levelSet, DefaultBrickTypes, CustomBrickTypes, LoadedGameData.TestLevelNum);
 		}
 	}

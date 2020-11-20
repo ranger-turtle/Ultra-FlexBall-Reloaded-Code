@@ -22,7 +22,8 @@ public class CommandLineArgumentProcessor : MonoBehaviour
 			if (firstArgMatch.Success)
 			{
 				levSetArgument = levSetArgument.Substring(3);
-				LoadedGameData.LevelSetFileName = Path.Combine(Path.GetDirectoryName(levSetArgument), Path.GetFileNameWithoutExtension(levSetArgument));
+				LoadedGameData.LevelSetDirectory = Path.GetDirectoryName(levSetArgument);
+				LoadedGameData.LevelSetFileName = Path.GetFileNameWithoutExtension(levSetArgument);
 				LoadedGameData.TestMode = TestMode.TestLevelSet;
 			}
 			if (testCommandLineArguments.Length > 2)

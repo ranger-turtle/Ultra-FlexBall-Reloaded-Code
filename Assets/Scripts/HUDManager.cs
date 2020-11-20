@@ -120,8 +120,6 @@ public class HUDManager : MonoBehaviour
 			case BallSize.Megajocke:
 				HUDDisplay.transform.Find("Icon").GetComponent<Image>().sprite = megaBallDisplaySprite;
 				break;
-			default:
-				break;
 		}
 	}
 

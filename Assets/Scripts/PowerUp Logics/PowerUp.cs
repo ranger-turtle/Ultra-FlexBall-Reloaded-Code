@@ -4,22 +4,30 @@
 public class PowerUp : MonoBehaviour
 {
 	public int Score { get; set; } = 500;
-	public int probability;
 	[SerializeField]
 	protected AudioClip collectSound;
+	public Vector2 CurrentVelocity;
+	private Vector2 LastFrameVelocity;
+	private readonly float maxSpeed = 0.2f;
 
 	private BoxCollider2D oblivion;
 
 	private void Start() => oblivion = GameObject.Find("Oblivion").GetComponent<BoxCollider2D>();
 
-	public virtual void TriggerAction()
+	protected virtual void TriggerAction() => Destroy(gameObject);
+
+	protected virtual void PlaySound() => SoundManager.Instance.PlaySfx(collectSound);
+
+	private void FixedUpdate()
 	{
-		Destroy(gameObject);
+		CurrentVelocity -= new Vector2(0, 0.0015f);
+		LastFrameVelocity = CurrentVelocity;
+		if (CurrentVelocity.magnitude < maxSpeed)
+			transform.position += new Vector3(CurrentVelocity.x, CurrentVelocity.y);
+		CheckIfBelowOblivion();
 	}
 
-	public virtual void PlaySound() => LevelSoundLibrary.Instance.PlaySfx(collectSound);
-
-	public void OnCollisionEnter2D(Collision2D collision)
+	private void OnCollisionEnter2D(Collision2D collision)
 	{
 		if (collision.gameObject.GetComponent<Paddle>())
 		{
@@ -28,13 +36,16 @@ public class PowerUp : MonoBehaviour
 			TriggerAction();
 			PlaySound();
 		}
+		else
+			CurrentVelocity = PhysicsHelper.GenerateReflectedVelocity(LastFrameVelocity, collision.GetContact(0).normal);
 	}
 
-	private void OnTriggerExit2D(Collider2D collider)
+	private void CheckIfBelowOblivion()
 	{
-		if (collider == oblivion)
+		Bounds thisBounds = GetComponent<BoxCollider2D>().bounds;
+		if (thisBounds.max.y <= oblivion.bounds.max.y)
 		{
-			LevelSoundLibrary.Instance.PlaySfx(LevelSoundLibrary.Instance.powerUpFall);
+			SoundManager.Instance.PlaySfx("Power Up Fall");
 			Destroy(gameObject);
 		}
 	}

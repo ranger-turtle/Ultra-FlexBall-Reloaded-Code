@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-public class ProtectiveBarrierRenderer : MonoBehaviour
+public class ZapRenderer : MonoBehaviour
 {
 	[SerializeField]
 #pragma warning disable CS0649 // Field 'ProtectiveBarrierRenderer.variableElectrode' is never assigned to, and will always have its default value null
@@ -13,13 +13,10 @@ public class ProtectiveBarrierRenderer : MonoBehaviour
 #pragma warning restore CS0649 // Field 'ProtectiveBarrierRenderer.indexOfVertexToChange' is never assigned to, and will always have its default value 0
 
 	// Start is called before the first frame update
-	void Start()
-    {
-		lineRenderer = GetComponent<LineRenderer>();
-    }
+	void Start() => lineRenderer = GetComponent<LineRenderer>();
 
-    // Update is called once per frame
-    void Update()
+	// Update is called once per frame
+	void Update()
     {
 		Vector3[] vertices = new Vector3[lineRenderer.positionCount];
 		int positionNumber = lineRenderer.GetPositions(vertices);

@@ -71,6 +71,7 @@ artifacts/
 *.scc
 *.png
 *.anim
+*.dll
 
 # Chutzpah Test files
 _Chutzpah*
@@ -273,3 +274,5 @@ __pycache__/
 /Temp
 /ProjectSettings
 /Library
+/Logs
+/High scores
