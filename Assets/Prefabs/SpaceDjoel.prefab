@@ -125,7 +125,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   layerMask:
     serializedVersion: 2
-    m_Bits: 17719
+    m_Bits: 17715
   yellowDjoelSprites:
   - {fileID: 3083232818661886459, guid: 1a88b25b0584af94292e8b038a7d3be6, type: 3}
   - {fileID: -6894373677338160048, guid: 1a88b25b0584af94292e8b038a7d3be6, type: 3}

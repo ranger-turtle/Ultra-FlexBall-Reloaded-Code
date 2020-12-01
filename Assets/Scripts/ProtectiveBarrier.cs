@@ -13,11 +13,12 @@ public class ProtectiveBarrier : MonoBehaviour
 		rightPaddleElectrode = GameObject.Find("Paddle/barrierElectrodes/right");
 	}
 
-	private void OnCollisionEnter2D(Collision2D collision)
+	private void Collision(GameObject bouncedObject)
 	{
-		if (collision.gameObject.GetComponent<Ball>())
+		IBrickBuster brickBuster = bouncedObject.GetComponent<IBrickBuster>();
+		if (brickBuster is Ball || brickBuster is SpaceDjoel)
 		{
-			float contactX = (collision.GetContact(0).point.x + collision.GetContact(1).point.x) / 2;
+			float contactX = brickBuster.LastHitPoint.x;
 			float secondPointXToCompare = contactX < leftPaddleElectrode.transform.position.x ? leftPaddleElectrode.transform.position.x : rightPaddleElectrode.transform.position.x;
 			if (Mathf.Abs(contactX - secondPointXToCompare) > indestructibleBarrierLength)
 			{

@@ -14,32 +14,22 @@ public class DefaultSoundLibrary : MonoBehaviour
 		if (Instance)
 			Destroy(Instance);
 		else
+		{
 			Instance = this;
+			SoundLibrary = new Dictionary<string, AudioClip>();
+			for (int i = 0; i < Mathf.Min(soundKeys.Count, soundClips.Count); i++)
+				SoundLibrary.Add(soundKeys[i], soundClips[i]);
+		}
 	}
 	#endregion
 
-	public AudioClip normalBallBounce;
-	public AudioClip bang;
-	public AudioClip explosion;
-	public AudioClip specialHit;
-	public AudioClip powerUpYield;
-	public AudioClip hitWall;
-	public AudioClip ballFall;
-	public AudioClip spaceDjoelFall;
-	public AudioClip powerUpFall;
-	public AudioClip magnetStick;
-	public AudioClip ballSizeChange;
-	public AudioClip brickDescend;
-	public AudioClip losePaddle;
-	public AudioClip bulletShoot;
-	public AudioClip bulletBounce;
-	public AudioClip ballThrust;
-	public AudioClip teleport;
-	public AudioClip megaMissileShoot;
-	public AudioClip megaExplosion;
-	public AudioClip protectiveBarrierHit;
-	public AudioClip quickBallBounce;
-	public AudioClip win;
+	[SerializeField]
+	private List<string> soundKeys;
+
+	[SerializeField]
+	private List<AudioClip> soundClips;
+
+	public Dictionary<string, AudioClip> SoundLibrary;
 
 	public AudioClip normalBrickBreak;
 	public AudioClip explosiveBrickHit;

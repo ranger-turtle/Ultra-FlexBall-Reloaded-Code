@@ -8,10 +8,16 @@ public class GameLoader : MonoBehaviour
 {
 	[SerializeField]
 	private ShutterAnimationManager coverManager;
+	[SerializeField]
+	private Sprite[] burnAnimation;
 
 	public void Start()
 	{
-		LoadedGameData.DefaultBrickTypes = FileImporter.LoadBricks();
+		if (LoadedGameData.BurnAnimation == null)
+		{
+			LoadedGameData.BurnAnimation = burnAnimation;
+			LoadedGameData.DefaultBrickTypes = FileImporter.LoadBricks(null);
+		}
 		if (LoadedGameData.TestMode != TestMode.None)
 			coverManager.Cover(GoToScene("Level"));
 	}

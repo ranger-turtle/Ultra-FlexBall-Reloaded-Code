@@ -3,7 +3,6 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 
-//TODO do auto generate power-up
 public class PowerUpManager : MonoBehaviour
 {
 	#region Singleton
@@ -48,22 +47,34 @@ public class PowerUpManager : MonoBehaviour
 		powerUpMeterFill.fillAmount = fillPercent;
 	}
 
-	public void IncreaseMeter(int increment, Vector3 position, Vector3 velocity)
+	/// <summary>
+	/// Increases power up meter.
+	/// 
+	/// <para>Returns true if increase resulted in power up yield.</para>
+	/// </summary>
+	/// <param name="increment"></param>
+	/// <param name="position"></param>
+	/// <param name="velocity"></param>
+	/// <returns>True if increase resulted in power up yield.</returns>
+	public bool IncreaseMeter(int increment, Vector3 position, Vector3 velocity, YieldedPowerUp powerUpType)
 	{
+		bool yield = false;
 		powerUpMeter += increment;
 		if (powerUpMeter > 100)
 		{
 			powerUpMeter = 0;
-			YieldPowerUp(position, velocity);
+			YieldPowerUp(position, velocity, powerUpType);
+			yield = true;
 		}
 		UpdatePowerUpMeterFill();
+		return yield;
 	}
 
-	public void YieldPowerUp(Vector2 position, Vector3 velocity, int score = 500)
+	public void YieldPowerUp(Vector2 position, Vector3 velocity, YieldedPowerUp powerUpType = YieldedPowerUp.Any, int score = 500)
 	{
 		//Debug.Break();
-		int powerUpIndex = Random.Range(0, powerUpPrefabs.Length);//BONUS do complex index randomization
-		//int powerUpIndex = (int)YieldedPowerUp.MegaSplit - 1;
+		int powerUpIndex = powerUpType == YieldedPowerUp.Any ? Random.Range(0, powerUpPrefabs.Length) : (int)powerUpType;//BONUS do complex index randomization
+		//int powerUpIndex = (int)YieldedPowerUp.MegaSplit;
 		//int[] indices = new int[] { 2, 3, 4 };
 		//int powerUpIndex = indices[Random.Range(0, indices.Length)];
 		Vector3 powerUpPosition = new Vector3(position.x, position.y, -3);
@@ -76,8 +87,7 @@ public class PowerUpManager : MonoBehaviour
 
 	public void YieldHelperPowerUp()
 	{
-		//FIXME remove -1's when you assign last number to any
-		int[] indices = new int[] { (int)YieldedPowerUp.BrickDescend - 1, (int)YieldedPowerUp.SpaceDjoel - 1, (int)YieldedPowerUp.Shooter - 1, (int)YieldedPowerUp.MegaSplit - 1 };//FIXME change to enum constants after ordering them
+		int[] indices = new int[] { (int)YieldedPowerUp.BrickDescend, (int)YieldedPowerUp.SpaceDjoel, (int)YieldedPowerUp.Shooter, (int)YieldedPowerUp.MegaSplit };
 		int powerUpIndex = indices[Random.Range(0, indices.Length)];
 		GameObject powerUp = Instantiate(powerUpPrefabs[powerUpIndex]);
 		powerUp.GetComponent<Rigidbody2D>().velocity = new Vector2(0, 0.05f);

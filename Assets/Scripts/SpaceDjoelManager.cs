@@ -33,7 +33,7 @@ public class SpaceDjoelManager : MonoBehaviour
 	private Transform generationYObject;
 
 	internal const float initialForce = 0.05f;
-	internal const float paddleBounceForce = 0.3f;
+	internal const float paddleBounceForce = 0.17f;
 
 	public int SpaceDjoelNumber => spaceDjoels.Count;
 

@@ -1,7 +1,7 @@
 ﻿using System.Collections;
 using UnityEngine;
 
-//TODO make bang sound only after first subsequent explosion
+//BONUS make explosions in corners in case of large area explosions
 [RequireComponent(typeof(BoxCollider2D))]
 public class Explosion : MonoBehaviour
 {
@@ -15,7 +15,7 @@ public class Explosion : MonoBehaviour
 
 	private IEnumerator WaitForExplosion(Collider2D collider)
 	{
-		yield return new WaitForSeconds(0.010f);
+		yield return new WaitForSeconds(Time.deltaTime * 3.5f);
 		//BONUS try finding better way how to support destroyed bricks
 		//BONUS try fixing uneven explosion assign
 		if (collider)

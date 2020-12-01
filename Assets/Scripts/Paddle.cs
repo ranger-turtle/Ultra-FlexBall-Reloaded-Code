@@ -1,8 +1,5 @@
 ﻿using UnityEngine;
 
-//TODO make side bounce
-//TODO make sparkles sprinkling from paddle side
-//TODO make sparkles sprinkling from paddle when ball hit when moving fast
 public class Paddle : MonoBehaviour
 {
 	#region Singleton
@@ -21,26 +18,27 @@ public class Paddle : MonoBehaviour
 	[SerializeField]
 #pragma warning disable CS0649 // Field 'Paddle.leftBound' is never assigned to, and will always have its default value null
 	private GameObject leftBound;
-#pragma warning restore CS0649 // Field 'Paddle.leftBound' is never assigned to, and will always have its default value null
 	[SerializeField]
-#pragma warning disable CS0649 // Field 'Paddle.rightBound' is never assigned to, and will always have its default value null
 	private GameObject rightBound;
-#pragma warning restore CS0649 // Field 'Paddle.rightBound' is never assigned to, and will always have its default value null
+	[SerializeField]
 	private GameObject magnet;
+	[SerializeField]
 	private GameObject shooter;
+	[SerializeField]
 	private GameObject megaMissileTurret;
+	[SerializeField]
 	private GameObject paddleElectrodes;
 	[SerializeField]
-#pragma warning disable CS0649 // Field 'Paddle.sideElectrodes' is never assigned to, and will always have its default value null
 	private GameObject sideElectrodes;
-#pragma warning restore CS0649 // Field 'Paddle.sideElectrodes' is never assigned to, and will always have its default value null
+	[SerializeField]
+	private GameObject magnetZap;
+	[SerializeField]
 	private SoundManager soundManager;
 	private float ballBounceFactor;
 
 	private float currentMouseX;
 
 	[SerializeField]
-#pragma warning disable CS0649 // Field 'Paddle.hudManager' is never assigned to, and will always have its default value null
 	private HUDManager hudManager;
 #pragma warning restore CS0649 // Field 'Paddle.hudManager' is never assigned to, and will always have its default value null
 
@@ -76,25 +74,17 @@ public class Paddle : MonoBehaviour
 	{
 		mainCamera = FindObjectOfType<Camera>();
 		Cursor.visible = false;
-		soundManager = GameObject.Find("Game").GetComponent<SoundManager>();
 		SetLength(GameManager.Instance.PaddleLengthLevel);
 		Debug.Log($"Paddle Length: {GameManager.Instance.PaddleLengthLevel}");
-		magnet = transform.Find("magnet").gameObject;
-		shooter = transform.Find("shooter").gameObject;
-		megaMissileTurret = transform.Find("megaMissileTurret").gameObject;
-		paddleElectrodes = transform.Find("barrierElectrodes").gameObject;
 		//Screen.SetResolution(640, 480, true);
 		//currentMouseX = transform.position.x;
 	}
 
 	// Update is called once per frame
-	void Update()
+	void FixedUpdate()
 	{
-		if (!hudManager.Paused)
-		{
-			PaddleMovement();
-			BallManager.Instance.UpdateBallPositionsWhenStuckToPaddle();
-		}
+		PaddleMovement();
+		BallManager.Instance.UpdateBallPositionsWhenStuckToPaddle();
 	}
 
 	internal void SetLength(int length)
@@ -126,6 +116,13 @@ public class Paddle : MonoBehaviour
 		return 90.00f - (maxBounceAngleRange * differenceRatio);
 	}
 
+	public void SetMagnetZapVisibility(bool visible)
+	{
+		if (visible)
+			MagnetActive = true;
+		magnetZap.SetActive(visible);
+	}
+
 	private void Collision(GameObject bouncedObject)
 	{
 		if (bouncedObject.GetComponent<Ball>() || bouncedObject.GetComponent<Bullet>() || bouncedObject.GetComponent<SpaceDjoel>())
@@ -146,6 +143,8 @@ public class Paddle : MonoBehaviour
 			if (bouncedObject.GetComponent<Ball>())
 			{
 				Ball ball = brickBuster as Ball;
+				Bounds paddleColliderBounds = GetComponent<BoxCollider2D>().bounds;
+				Vector3 particlePosition = new Vector3(bouncedObject.transform.position.x, paddleColliderBounds.max.y + .001f, bouncedObject.transform.position.z);
 				Vector2 futureVelocity;
 				//Ball ball = collision.gameObject.GetComponent<Ball>();
 				if (ball.BallSize != (int)GameManager.Instance.BallSize)
@@ -153,24 +152,25 @@ public class Paddle : MonoBehaviour
 				ball.UpdateSize();
 				ball.FinishThrust();
 				ParticleManager.Instance.RemoveThrustingFlame(ball.gameObject);
-				if (!GameManager.Instance.MagnetPaddle || brickBuster.CurrentVelocity.magnitude >= BallManager.maxBallSpeed * 0.8f)
+				if (!GameManager.Instance.MagnetPaddle || brickBuster.LastFrameVelocity.magnitude >= BallManager.maxBallSpeed * 0.8f)
 				{
-					futureVelocity = PhysicsHelper.GetAngledVelocity(angle) * Mathf.Max(brickBuster.CurrentVelocity.magnitude * 0.80f, BallManager.minBallSpeed);
+					ball.transform.position = new Vector3(ball.transform.position.x, paddleColliderBounds.max.y + ball.GetComponent<BoxCollider2D>().bounds.extents.y + .001f, ball.transform.position.z);
+					futureVelocity = PhysicsHelper.GetAngledVelocity(angle) * Mathf.Max(brickBuster.LastFrameVelocity.magnitude * 0.80f, BallManager.minBallSpeed);
 					futureVelocity = new Vector2(RoundToTwoPlaces(futureVelocity.x), futureVelocity.y);
-					if (brickBuster.CurrentVelocity.magnitude < BallManager.maxBallSpeed * 0.8f)
+					if (brickBuster.LastFrameVelocity.magnitude < BallManager.maxBallSpeed * 0.8f)
 						soundManager.PlaySfx("Normal Ball Bounce");
 					else
-						soundManager.PlaySfx(DefaultSoundLibrary.Instance.quickBallBounce);
+						BounceWithStrongForce(particlePosition);
 					brickBuster.CurrentVelocity = futureVelocity;
 				}
 				else
 				{
 					futureVelocity = PhysicsHelper.GetAngledVelocity(angle) * BallManager.minBallSpeed;
 					futureVelocity = new Vector2(RoundToTwoPlaces(futureVelocity.x), futureVelocity.y);
-					if (brickBuster.CurrentVelocity.magnitude < BallManager.maxBallSpeed * 0.5f)
+					if (brickBuster.LastFrameVelocity.magnitude < BallManager.maxBallSpeed * 0.5f)
 						soundManager.PlaySfx("Magnet Stick");
 					else
-						soundManager.PlaySfx(DefaultSoundLibrary.Instance.quickBallBounce);
+						BounceWithStrongForce(particlePosition);
 					ball.StickToPaddle(futureVelocity, difference);
 				}
 
@@ -183,14 +183,20 @@ public class Paddle : MonoBehaviour
 			else if (bouncedObject.GetComponent<Bullet>())
 			{
 				soundManager.PlaySfx("Bullet Bounce");
-				brickBuster.CurrentVelocity = PhysicsHelper.GetAngledVelocity(angle) * brickBuster.CurrentVelocity.magnitude;
+				bouncedObject.GetComponent<Bullet>().BounceWithRandomAngle(-1);
 			}
 			else if (bouncedObject.GetComponent<SpaceDjoel>())
 			{
-				Vector2 futureVelocity = PhysicsHelper.GetAngledVelocity(angle) * Mathf.Max(brickBuster.CurrentVelocity.magnitude * 0.750f, SpaceDjoelManager.paddleBounceForce);
+				Vector2 futureVelocity = PhysicsHelper.GetAngledVelocity(angle) * Mathf.Max(brickBuster.LastFrameVelocity.magnitude * 0.50f, SpaceDjoelManager.paddleBounceForce);
 				soundManager.PlaySfx("Normal Ball Bounce");
 				brickBuster.CurrentVelocity = futureVelocity;
 			}
 		}
+	}
+
+	private void BounceWithStrongForce(Vector3 position)
+	{
+		ParticleManager.Instance.GenerateHighSpeedPaddleBounceSparkles(position);
+		soundManager.PlaySfx("Fast Ball Bounce");
 	}
 }

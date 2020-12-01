@@ -9,89 +9,114 @@ using UnityEngine.Networking;
 
 internal class FileImporter
 {
-	private static T LoadFromBinaryFile<T>(string filePath, string fileSignature = null) where T : class
-	{
-		using (FileStream fs = File.Open(filePath, FileMode.Open))
-		{
-			if (!(fileSignature is null))
-			{
-				byte[] signatureBytes = new byte[fileSignature.Length];
-				fs.Read(signatureBytes, 0, signatureBytes.Length);
-				if (Encoding.Default.GetString(signatureBytes) != fileSignature)
-					throw new IOException("Could not read file.");
-			}
-			return new BinaryFormatter().Deserialize(fs) as T;
-		}
-	}
-
 	internal static string GetDirectoryNameInLevelSetDirectory(string levelSetDirectoryPath, string levelSetFileName, string elementName) => Path.Combine(levelSetDirectoryPath, levelSetFileName, elementName);
 
-	internal static bool LevelSetExternalFileDirectoryExists(string levelSetDirectoryPath, string levelSetFileName) => Directory.Exists(Path.Combine(levelSetDirectoryPath, levelSetFileName));
-
-	public static Texture2D GetBackgroundTexture(string levelSetDirectoryPath, string levelSetFileName, string backgroundName)
-	{
-		string backgroundPath = Path.Combine(GetDirectoryNameInLevelSetDirectory(levelSetDirectoryPath, levelSetFileName, "Backgrounds"), $"{backgroundName}.png");
-		return LoadTexture(backgroundPath);
-	}
+	internal static bool LevelSetResourceDirectoryExists(string levelSetDirectoryPath, string levelSetFileName) => Directory.Exists(Path.Combine(levelSetDirectoryPath, levelSetFileName));
 
 	public static LevelSet LoadLevelSet(string levelSetDirectoryPath, string levelSetFileName) =>
-		LoadFromBinaryFile<LevelSet>(Path.Combine(levelSetDirectoryPath, $"{levelSetFileName}.nlev"), "nuLev");
+		UltraFlexBallReloadedFileLoader.LoadLevelSet(Path.Combine(levelSetDirectoryPath, $"{levelSetFileName}.nlev"));
 
 	public static BrickProperties LoadBrickProperties(string brickFilePath) =>
-		LoadFromBinaryFile<BrickProperties>($"{brickFilePath}.brick");
+		UltraFlexBallReloadedFileLoader.LoadBrick($"{brickFilePath}.brick");
 
-	public static BrickType[] LoadBricks(HashSet<string> missingFileNames = null, string bricksPath = "Default Bricks")
+	public static BrickType[] LoadBricks(List<string> errorList, string bricksPath = "Default Bricks")
 	{
-		return Directory.GetFiles(bricksPath, "*.brick", SearchOption.TopDirectoryOnly)
-			.Select(fn => new BrickType(Path.GetFileNameWithoutExtension(fn), missingFileNames, bricksPath))
-			.OrderBy(bt => bt.Properties.Id).ToArray();
-	}
-
-	public static LevelPersistentData LoadLevelPersistentData(string fileName)
-	{
-		string filePath = LevelPersistentData.GetSaveFilePath(fileName);
-		return File.Exists(filePath) ? LoadFromBinaryFile<LevelPersistentData>(filePath) : null;
-	}
-
-	public static Texture2D LoadTexture(string FilePath)
-	{
-		Texture2D Tex2D;
-		byte[] FileData;
-
-		if (File.Exists(FilePath))
+		List<BrickType> brickType = new List<BrickType>();
+		string[] brickFilePaths = Directory.GetFiles(bricksPath, "*.brick", SearchOption.TopDirectoryOnly);
+		foreach (string brickFilePath in brickFilePaths)
 		{
-			FileData = File.ReadAllBytes(FilePath);
-			Tex2D = new Texture2D(2, 2);
-			if (Tex2D.LoadImage(FileData))
-				return Tex2D;
-		}
-		return null;
-	}
-
-	public static Dictionary<string, AudioClip> LoadAudioClipsFromLevelSet(string levelSetName, TestMode testMode, string levelSetDirectory)
-	{
-		Dictionary<string, AudioClip> existingAudioClips = new Dictionary<string, AudioClip>();
-		string levelSetPath = testMode == TestMode.None ? Path.Combine(Application.dataPath, $"../Level sets/") : levelSetDirectory;
-		string soundDirectoryPath = GetDirectoryNameInLevelSetDirectory(levelSetPath, levelSetName, "Sounds");
-		if (Directory.Exists(soundDirectoryPath))
-		{
-			IEnumerable<string> soundFileNames = Directory.EnumerateFiles(soundDirectoryPath, "*.wav").Select(s => Path.GetFileNameWithoutExtension(s));
-			foreach (string soundFileName in soundFileNames)
+			try
 			{
-				existingAudioClips.Add(soundFileName, LoadAudioClip(levelSetName, soundFileName, testMode, levelSetDirectory));
+				brickType.Add(new BrickType(Path.GetFileNameWithoutExtension(brickFilePath), bricksPath));
 			}
-			return existingAudioClips;
+			catch (DirectoryNotFoundException dnfe)
+			{
+				errorList.Add(dnfe.Message);
+			}
+			catch (FileNotFoundException)
+			{
+				errorList.Add($"Brick saved at {brickFilePath} not found.");
+			}
+			catch (BrickType.InvalidBrickTextureException ibte)
+			{
+				errorList.Add(ibte.Message);
+			}
+			catch (IOException)
+			{
+				errorList.Add($"Brick saved at {brickFilePath} is corrupt.");
+			}
+		}
+		return brickType.OrderBy(bt => bt.Properties.Id).ToArray();
+	}
+
+	public static Dictionary<string, Texture2D> LoadBackgroundsFromLevelSet(string levelSetName, string levelSetDirectory)
+	{
+		string backgroundDirectoryPath = GetDirectoryNameInLevelSetDirectory(levelSetDirectory, levelSetName, "Backgrounds");
+		if (Directory.Exists(backgroundDirectoryPath))
+		{
+			return Directory.EnumerateFiles(backgroundDirectoryPath, "*.png")
+				.Select(s => Path.GetFileNameWithoutExtension(s))
+				.ToDictionary(bgImageName => bgImageName, bgImageName => LoadTexture(Path.Combine(backgroundDirectoryPath, $"{bgImageName}")));
 		}
 		else
 			return null;
 	}
 
-	public static AudioClip LoadAudioClip(string levelSetName, string soundName, TestMode testMode, string levelSetDirectory)
+	/// <summary>
+	/// Loads texture from disk.
+	/// </summary>
+	/// <param name="filePath"></param>
+	/// <exception cref="IOException"></exception>
+	/// <returns></returns>
+	public static Texture2D LoadTexture(string filePath)
+	{
+		Texture2D Tex2D;
+		byte[] FileData;
+
+		FileData = File.ReadAllBytes($"{filePath}.png");
+		Tex2D = new Texture2D(2, 2);
+		if (Tex2D.LoadImage(FileData))
+			return Tex2D;
+		else
+			throw new IOException();
+	}
+
+	public static Dictionary<string, AudioClip> LoadAudioClipsFromLevelSet(string levelSetName, TestMode testMode, string levelSetDirectory)
+	{
+		string levelSetPath = testMode == TestMode.None ? Path.Combine(Application.dataPath, $"../Level sets/") : levelSetDirectory;
+		string soundDirectoryPath = GetDirectoryNameInLevelSetDirectory(levelSetPath, levelSetName, "Sounds");
+		if (Directory.Exists(soundDirectoryPath))
+		{
+			return Directory.EnumerateFiles(soundDirectoryPath, "*.wav")
+				.Select(s => Path.GetFileNameWithoutExtension(s))
+				.ToDictionary(soundFileName => soundFileName, soundFileName => LoadAudioClip(levelSetName, soundFileName, testMode, levelSetDirectory));
+		}
+		else
+			return null;
+	}
+
+	public static Dictionary<string, AudioClip> LoadMusicFromLevelSet(string levelSetName, TestMode testMode, string levelSetDirectory)
+	{
+		string levelSetPath = testMode == TestMode.None ? Path.Combine(Application.dataPath, $"../Level sets/") : levelSetDirectory;
+		string soundDirectoryPath = GetDirectoryNameInLevelSetDirectory(levelSetPath, levelSetName, "Music");
+		if (Directory.Exists(soundDirectoryPath))
+		{
+			return Directory.EnumerateFiles(soundDirectoryPath, "*.ogg")
+				.Select(s => Path.GetFileNameWithoutExtension(s))
+				.ToDictionary(musicFileName => musicFileName, musicFileName => LoadAudioClip(levelSetName, musicFileName, testMode, levelSetDirectory, AudioType.OGGVORBIS));
+		}
+		else
+			return null;
+	}
+
+	private static AudioClip LoadAudioClip(string levelSetName, string soundName, TestMode testMode, string levelSetDirectory, AudioType audioType = AudioType.WAV)
 	{
 		/*try
 		{*/
+		string extension = audioType == AudioType.WAV ? "wav" : "ogg";
+		string resourceFolderName = audioType == AudioType.WAV ? "Sounds" : "Music";
 		string levelSetPath = testMode == TestMode.None ? Path.Combine(Application.dataPath, $"../Level sets/") : levelSetDirectory;
-		UnityWebRequest uwr = UnityWebRequestMultimedia.GetAudioClip(Path.Combine("file://", GetDirectoryNameInLevelSetDirectory(levelSetPath, levelSetName, "Sounds"), $"{soundName}.wav"), AudioType.WAV);
+		UnityWebRequest uwr = UnityWebRequestMultimedia.GetAudioClip(Path.Combine("file://", GetDirectoryNameInLevelSetDirectory(levelSetPath, levelSetName, resourceFolderName), $"{soundName}.{extension}"), audioType);
 			uwr.SendWebRequest();
 
 			if (uwr.isHttpError)
@@ -110,7 +135,4 @@ internal class FileImporter
 			return null;
 		}*/
 	}
-
-	public static List<LeaderboardPosition> LoadHighScores(string levelSetFileName) =>
-		LoadFromBinaryFile<List<LeaderboardPosition>>(Path.Combine("High scores", $"{levelSetFileName}.sco"));
 }

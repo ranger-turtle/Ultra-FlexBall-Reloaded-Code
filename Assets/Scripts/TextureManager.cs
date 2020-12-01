@@ -16,38 +16,83 @@ public class TextureManager : MonoBehaviour
 		if (Instance)
 			Destroy(Instance);
 		else
+		{
 			Instance = this;
+		}
 	}
 	#endregion
 
 	[SerializeField]
-#pragma warning disable CS0649 // Field 'TextureManager.backgroundRenderer' is never assigned to, and will always have its default value null
 	private SpriteRenderer backgroundRenderer;
-#pragma warning restore CS0649 // Field 'TextureManager.backgroundRenderer' is never assigned to, and will always have its default value null
 
-	public void LoadLevelTextures(string levelSetDirectory, string levelSetFileName, LevelSetData.Level level)
+	private Dictionary<string, Sprite> loadedBackgrounds;
+	private Sprite levelSetDefaultBackground;
+
+	public void LoadLevelSetTextures(string levelSetDirectory, string levelSetFileName)
+	{
+		loadedBackgrounds = FileImporter.LoadBackgroundsFromLevelSet(levelSetFileName, levelSetDirectory)?.ToDictionary(k => k.Key, v => CreateBackgroundSprite(v.Value));
+	}
+
+	public Sprite CreateBackgroundSprite(Texture2D backgroundTexture)
+	{
+		return Sprite.Create(
+			backgroundTexture,
+			new Rect(0, 0, backgroundTexture.width, backgroundTexture.height),
+			new Vector2(0, 1),
+			48.0f,
+			1,
+			SpriteMeshType.FullRect
+		);
+	}
+
+	public void UpdateLevelSetTextures(LevelSetData.LevelSet levelSet, List<string> errorList)
+	{
+		string backgroundName = levelSet.LevelSetProperties.DefaultBackgroundName;
+		if (loadedBackgrounds != null)
+		{
+			if (backgroundName == "<none>")
+				levelSetDefaultBackground = null;
+			else
+			{
+				try
+				{
+					levelSetDefaultBackground = loadedBackgrounds[backgroundName];
+				}
+				catch (KeyNotFoundException)
+				{
+					errorList.Add($"Background image {backgroundName} not found.");
+				}
+			}
+		}
+		else if (backgroundName[0] != '<')
+			errorList.Add($"Background image {backgroundName} not found.");
+	}
+
+	public void UpdateLevelTextures(LevelSetData.Level level, List<string> errorList)
 	{
 		string backgroundName = level.LevelProperties.BackgroundName;
-		if (backgroundName == "<none>")
+		if (loadedBackgrounds != null)
 		{
-			Texture2D backgroundTexture = FileImporter.GetBackgroundTexture(levelSetDirectory, levelSetFileName, backgroundName);
-			if (backgroundTexture != null)
+			if (backgroundName == "<level-set-default>")
 			{
-				Sprite sprite = Sprite.Create(
-					backgroundTexture,
-					new Rect(0, 0, backgroundTexture.width, backgroundTexture.height),
-					new Vector2(0, 1),
-					48.0f,
-					1,
-					SpriteMeshType.FullRect
-				);
-				backgroundRenderer.sprite = sprite;
-				backgroundRenderer.size = new Vector2(12.50f, 10.0f);
+				backgroundRenderer.sprite = levelSetDefaultBackground;
 			}
-			else
+			else if (backgroundName == "<none>")
 				backgroundRenderer.sprite = null;
+			else
+			{
+				try
+				{
+					backgroundRenderer.sprite = loadedBackgrounds[backgroundName];
+				}
+				catch (KeyNotFoundException)
+				{
+					errorList.Add($"Background image {backgroundName} not found.");
+				}
+			}
 		}
-		else
-			backgroundRenderer.sprite = null;
+		else if (backgroundName[0] != '<')
+			errorList.Add($"Background image {backgroundName} not found.");
+		backgroundRenderer.size = new Vector2(12.50f, 10.0f);
 	}
 }

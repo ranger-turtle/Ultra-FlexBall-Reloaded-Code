@@ -10,14 +10,17 @@ public class Brick : MonoBehaviour
 	public BrickType brickType;
 	public int x;
 	public int y;
+	private float height;
 
 	private int currentAnimationSpriteIndex;
-	private bool hidden;
 
 	public bool Broken { get; private set; }
 	public bool SpaceDjoelBrick { get; private set; }
+	public bool Hidden { get; private set; }
 
 	private SoundManager soundManager;
+	private SpriteRenderer spriteRenderer;
+	private BoxCollider2D boxCollider2D;
 
 	internal BrickProperties BrickProperties => brickType.Properties;
 
@@ -25,35 +28,52 @@ public class Brick : MonoBehaviour
 
 	private ParticleSystem chimneyParticles;
 
-    // Start is called before the first frame update
-    void Start()
+	private bool performSpecialHit = true;
+
+	// Start is called before the first frame update
+	void Start()
     {
 		soundManager = SoundManager.Instance;
+		spriteRenderer = GetComponent<SpriteRenderer>();
 
-		if (BrickProperties.Hidden)
-		{
-			GetComponent<SpriteRenderer>().enabled = false;
-			hidden = true;
-		}
+		boxCollider2D = GetComponent<BoxCollider2D>();
+		height = boxCollider2D.size.y;
 		PrepareParticles();
 		PrepareBrickAnimation();
 	}
 
-	private void ChangeToNextBrick() => ChangeBrickType(BrickProperties.NextBrickId);
+	internal void TryHide()
+	{
+		if (BrickProperties.Hidden)
+		{
+			GetComponent<SpriteRenderer>().enabled = false;
+			Hidden = true;
+		}
+	}
+
+	private void ChangeToNextBrick() => ChangeBrickType(BrickProperties.NextBrickTypeId);
 
 	private void ChangeToBrickAfterBeingPressed() => ChangeBrickType(BrickProperties.DescendingPressTurnId);
 
 	internal void ChangeBrickType(int newBrickId)
 	{
-		bool previousRequiredToComplete = brickType.Properties.RequiredToComplete;
-		brickType = GameManager.Instance.GetBrickById(newBrickId);
+		bool previousRequiredToComplete = (brickType.Properties.RequiredToComplete && !Hidden) || (brickType.Properties.RequiredToCompleteWhenHidden && Hidden);
+		brickType = GameManager.Instance.GetBrickTypeById(newBrickId);
+		bool nextRequiredToComplete = (brickType.Properties.RequiredToComplete && !brickType.Properties.Hidden) || brickType.Properties.RequiredToCompleteWhenHidden;
 		//hitSound = FileImporter.LoadAudioClip("classic", "brickbreak");
-		if (brickType.Properties.RequiredToComplete != previousRequiredToComplete)
+		if (nextRequiredToComplete != previousRequiredToComplete)
 		{
-			if (!brickType.Properties.RequiredToComplete && previousRequiredToComplete)
+			if (!nextRequiredToComplete && previousRequiredToComplete)
 				GameManager.Instance.DecrementRequiredBricks();
-			else
+			else if (nextRequiredToComplete && !previousRequiredToComplete)
 				GameManager.Instance.IncrementRequiredBricks();
+		}
+		if (brickType.Properties.Hidden)
+			TryHide();
+		else
+		{
+			spriteRenderer.enabled = true;
+			Hidden = false;
 		}
 		PrepareParticles();
 		PrepareBrickAnimation();
@@ -61,23 +81,16 @@ public class Brick : MonoBehaviour
 
 	internal void TryMoveBlockDown(int yMove)
 	{
-		if (y == LevelSet.ROWS - 1)
+		if (y < LevelSet.ROWS - 1)
 		{
-			if (BrickProperties.DescendingBottomTurnId != 0)
-				ChangeBrickType(BrickProperties.DescendingBottomTurnId);
-			Debug.Log($"x: {x}, y: {y}: At the bottom");
-		}
-		else
-		{
-			float height = GetComponent<BoxCollider2D>().size.y;
 
 			Brick hitBrick = GameManager.Instance.GetBrickByCoordinates(x, y + yMove);
 
 			if (hitBrick)
 			{
-				if (hitBrick.BrickProperties.DescendingBottomTurnId != 0)
-					hitBrick.ChangeBrickType(hitBrick.BrickProperties.DescendingBottomTurnId);
-				Debug.Log($"x: {x}, y: {y}: No change");
+				if (hitBrick.BrickProperties.DescendingPressTurnId != 0)
+					hitBrick.ChangeBrickType(hitBrick.BrickProperties.DescendingPressTurnId);
+				//Debug.Log($"x: {x}, y: {y}: No change");
 			}
 			else
 			{
@@ -85,8 +98,14 @@ public class Brick : MonoBehaviour
 				transform.position -= move;
 				if (chimneyParticles)
 					chimneyParticles.transform.position -= move;
-				y += yMove;
-				Debug.Log($"x: {x}, y: {y}: Move");
+				y = Mathf.Min(y + yMove, LevelSet.ROWS - 1);
+				if (y == LevelSet.ROWS - 1)
+				{
+					if (BrickProperties.DescendingBottomTurnId != 0)
+						ChangeBrickType(BrickProperties.DescendingBottomTurnId);
+					//Debug.Log($"x: {x}, y: {y}: At the bottom");
+				}
+				//Debug.Log($"x: {x}, y: {y}: Move");
 			}
 		}
 	}
@@ -101,24 +120,24 @@ public class Brick : MonoBehaviour
 		else
 		{
 			currentAnimationSpriteIndex = 0;
-			GetComponent<SpriteRenderer>().sprite = brickType.Sprites[currentAnimationSpriteIndex];
+			spriteRenderer.sprite = brickType.Sprites[currentAnimationSpriteIndex];
 		}
 	}
 
 	private void PrepareParticles()
 	{
-		chimneyParticles = ParticleManager.Instance.GenererateBrickParticle(BrickProperties);
-		if (chimneyParticles != null)
+		chimneyParticles = ParticleManager.Instance.GenerateBrickParticle(BrickProperties);
+		if (chimneyParticles)
 		{
-			float x = transform.position.x + brickType.BrickUnityWidth * BrickProperties.ParticleX / 100;
-			float y = transform.position.y + brickType.BrickUnityHeight * BrickProperties.ParticleY / 100;
+			float x = transform.position.x + BrickType.BrickUnityWidth * BrickProperties.ParticleX / 100;
+			float y = transform.position.y + BrickType.BrickUnityHeight * BrickProperties.ParticleY / 100;
 			chimneyParticles.transform.position = new Vector3(x, y, transform.position.z - 0.1f);
 		}
 	}
 
 	private void MakeExplosion(int explosionRadius)
 	{
-		Vector2 spriteBounds = GetComponent<BoxCollider2D>().size;
+		Vector2 spriteBounds = boxCollider2D.size;
 		Vector3 explosionPosition = new Vector3(gameObject.transform.position.x + spriteBounds.x / 2, gameObject.transform.position.y - spriteBounds.y / 2, -4);
 		GameManager.Instance.MakeExplosion(explosionRadius, explosionPosition, spriteBounds);
 	}
@@ -143,15 +162,19 @@ public class Brick : MonoBehaviour
 				if (BrickProperties.TeleportType == TeleportType.All)
 					GameManager.Instance.GenerateBallsFromTeleporters(brickBusterObject, BrickProperties.TeleportExits, brickBuster.LastHitNormal);
 			}
-			if (!brickBuster.Teleport)
+			if (!brickBuster.Teleport)//if brickBuster is not teleported
 			{
+				bool previouslyHidden = false;
+				if (Hidden)
+				{
+					Reveal();
+					previouslyHidden = true;
+				}
 				if (!isSpaceDjoel)
 				{
 					if (GameManager.Instance.PenetratingBall && !BrickProperties.PenetrationResistant)
 						Break(BrickProperties.Points / 2, brickBusterObject, true);
-					else if (hidden)
-						Reveal();
-					else if (!BrickProperties.NormalResistant)
+					else if (!BrickProperties.NormalResistant && !previouslyHidden)
 						Break(BrickProperties.Points, brickBusterObject);
 					else if (brickType.HasHitSprite)
 						StartCoroutine(DisplayHitSprite());
@@ -162,15 +185,16 @@ public class Brick : MonoBehaviour
 						MakeExplosion(1);
 						soundManager.PlaySfx("Bang");
 					}
-					if (isBrickBusterABall && !GameManager.Instance.PenetratingBall && BrickProperties.IsBallThrusting)
+					if (isBrickBusterABall && BrickProperties.IsBallThrusting && BrickProperties.NormalResistant)
 						BreakBrickPointedByBallThrustingBrick(BrickProperties.BallThrustDirection);
 				}
 				else
 					Break(BrickProperties.Points, brickBusterObject, true);
 			}
 			if (BrickProperties.AlwaysSpecialHit)
-				GameManager.Instance.PerformSpecialHit();
+				PerformSpecialHit();
 			ParticleManager.Instance.GenerateBrickHitEffect(new Vector3(brickBuster.LastHitPoint.x, brickBuster.LastHitPoint.y, transform.position.z - 0.1f), brickBuster.LastHitNormal);
+			performSpecialHit = true;
 		}
 	}
 
@@ -178,27 +202,24 @@ public class Brick : MonoBehaviour
 	{
 		if (!Broken)
 		{
-			//Debug.Log($"Brick break x: {x}, y: {y}");
-			//Debug.Log($"Brick Disabled");
-			if (BrickProperties.NextBrickId == 0 || force)
+			if (BrickProperties.NextBrickTypeId == 0 || force)
 			{
-				Reveal();
+				Reveal(false);
 				DecrementRequiredBrickNumberIfNeeded();
 				if (BrickProperties.IsExplosive && TriggersOnDestroy(BrickProperties.ExplosionTrigger))
 				{
-					//Debug.Break();
+					if (brickBusterObject)
+						soundManager.PlaySfx("Bang");
 					MakeExplosion(BrickProperties.ExplosionRadius);
 				}
 				if (BrickProperties.IsDetonator && TriggersOnDestroy(BrickProperties.DetonationTrigger))
-					GameManager.Instance.DetonateBrick(BrickProperties.DetonateId, BrickProperties.DetonationRange);
-				//TODO do custom animation support
-				//TODO try making distinctive trigger on destroy or hit
+					GameManager.Instance.DetonateOrChangeBrick(BrickProperties.OldBrickTypeId, BrickProperties.NewBrickTypeId, BrickProperties.DetonationRange);
 				if (BrickProperties.FuseDirection != Direction.None && TriggersOnDestroy(BrickProperties.FuseTrigger))
 					StartCoroutine(PrepareForFuseBurn());
-				if (brickBusterObject?.GetComponent<SpaceDjoel>() == false)
+				if (brickBusterObject?.GetComponent<SpaceDjoel>() == false || BrickProperties.IsExplosive || BrickProperties.IsFuse)
 				{
-					StartCoroutine(FadingCoroutine());
 					Broken = true;
+					PlayBreakAnimation(brickBusterObject);
 					GetComponent<Collider2D>().enabled = false;
 				}
 				else
@@ -220,6 +241,35 @@ public class Brick : MonoBehaviour
 		}
 	}
 
+	private void PlayBreakAnimation(GameObject brickBusterObject)
+	{
+		BreakAnimationType breakAnimationType = BrickProperties.BallBreakAnimationType;
+		Sprite[] sprites = brickType.BallBreakAnimationSprites;
+		if (!brickBusterObject)
+		{
+			breakAnimationType = BrickProperties.ExplosionBreakAnimationType;
+			sprites = brickType.ExplosionBreakAnimationSprites;
+		}
+		else if (brickBusterObject.GetComponent<Bullet>())
+		{
+			breakAnimationType = BrickProperties.BulletBreakAnimationType;
+			sprites = brickType.BulletBreakAnimationSprites;
+		}
+		switch (breakAnimationType)
+		{
+			case BreakAnimationType.Fade:
+				StartCoroutine(FadingCoroutine());
+				break;
+			case BreakAnimationType.Burn:
+			case BreakAnimationType.Custom:
+				StopBrickAnimation();
+				StartCoroutine(BreakAnimationCoroutine(sprites));
+				break;
+			default:
+				break;
+		}
+	}
+
 	private void DecrementRequiredBrickNumberIfNeeded()
 	{
 		if (BrickProperties.RequiredToComplete && !SpaceDjoelBrick)
@@ -234,49 +284,71 @@ public class Brick : MonoBehaviour
 
 	public void TryIncreasePowerUpField(GameObject brickBusterObject = null)
 	{
-		//TODO make power-up to jump to far-left, near-left, near-right and far-right
-		Vector2 powerUpVelocity = new Vector2(0.3f, 0.5f);
-		float powerUpYieldX = GetComponent<BoxCollider2D>().bounds.center.x;
-		float powerUpYieldY = GetComponent<BoxCollider2D>().bounds.center.y;
+		Vector2 powerUpVelocity = PhysicsHelper.GetAngledVelocity(Random.Range(20, 160)) * 0.1f;
+		float powerUpYieldX = boxCollider2D.bounds.center.x;
+		float powerUpYieldY = boxCollider2D.bounds.center.y;
 		Vector2 powerUpPosition = new Vector3(powerUpYieldX, powerUpYieldY);
 		int outputPowerUpMeterUnits = BrickProperties.PowerUpMeterUnits;
 		if (brickBusterObject)//If brick is destroyed by brick buster
 		{
-			if (brickBusterObject.GetComponent<Ball>() || brickBusterObject.GetComponent<Bullet>())
+			Ball ball = brickBusterObject.GetComponent<Ball>();
+			Bullet bullet = brickBusterObject.GetComponent<Bullet>();
+			SpaceDjoel spaceDjoel = brickBusterObject.GetComponent<SpaceDjoel>();
+			if (ball || bullet)
 			{
 				if (GameManager.Instance.PenetratingBall)
 					outputPowerUpMeterUnits /= 2;
-				if (brickBusterObject.GetComponent<Ball>())
-					powerUpVelocity = brickBusterObject.GetComponent<Ball>().LastFrameVelocity;
-				else if (brickBusterObject.GetComponent<Bullet>())
-					powerUpVelocity = brickBusterObject.GetComponent<Bullet>().VelocityBeforeHit;
+				if (ball && !ball.Thrust)
+					powerUpVelocity = ball.LastFrameVelocity;
+				else if (bullet)
+					powerUpVelocity = bullet.VelocityBeforeHit;
 			}
-			else if (brickBusterObject.GetComponent<SpaceDjoel>())
+			else if (spaceDjoel)
 			{
-				powerUpVelocity = brickBusterObject.GetComponent<SpaceDjoel>().LastFrameVelocity;
+				powerUpVelocity = spaceDjoel.LastFrameVelocity;
 				outputPowerUpMeterUnits /= 2;
 			}
 		}
 		else
 			outputPowerUpMeterUnits = 1;
 		if (!BrickProperties.AlwaysPowerUpYielding)
-			PowerUpManager.Instance.IncreaseMeter(outputPowerUpMeterUnits, powerUpPosition, powerUpVelocity);
+		{
+			bool yield = PowerUpManager.Instance.IncreaseMeter(outputPowerUpMeterUnits, powerUpPosition, powerUpVelocity, BrickProperties.YieldedPowerUp);
+			if (yield)
+				PerformSpecialHit();
+		}
 		else
-			PowerUpManager.Instance.YieldPowerUp(powerUpPosition, powerUpVelocity, 9);
+		{
+			PowerUpManager.Instance.YieldPowerUp(powerUpPosition, powerUpVelocity, BrickProperties.YieldedPowerUp, 9);
+			PerformSpecialHit();
+		}
 	}
 
-	private void Reveal(bool performSpecialHit = true)
+	internal void Reveal(bool specialHit = true)
 	{
-		if (hidden)
+		if (Hidden)
 		{
-			if (performSpecialHit)
-				GameManager.Instance.PerformSpecialHit();
-			GetComponent<SpriteRenderer>().enabled = true;
+			if (specialHit)
+				PerformSpecialHit();
+			spriteRenderer.enabled = true;
 			if (!BrickProperties.RequiredToCompleteWhenHidden && BrickProperties.RequiredToComplete)
 				GameManager.Instance.IncrementRequiredBricks();
 			else if (BrickProperties.RequiredToCompleteWhenHidden && !BrickProperties.RequiredToComplete)
 				GameManager.Instance.DecrementRequiredBricks();
-			hidden = false;
+			Hidden = false;
+		}
+	}
+
+	private void PerformSpecialHit()
+	{
+		if (performSpecialHit)
+		{
+			Bounds bounds = boxCollider2D.bounds;
+			float xExtents = bounds.extents.x;
+			float yExtents = bounds.extents.y;
+			SoundManager.Instance.PlaySfx("Bang");
+			ParticleManager.Instance.GenerateSpecialHitEffect(new Vector3(transform.position.x + xExtents, transform.position.y - yExtents, transform.position.z - 0.1f));
+			performSpecialHit = false;
 		}
 	}
 
@@ -310,8 +382,6 @@ public class Brick : MonoBehaviour
 
 	private IEnumerator DisplayHitSprite()
 	{
-		//UNDONE make function work properly when brick is animated
-		SpriteRenderer spriteRenderer = GetComponent<SpriteRenderer>();
 		int lastIndex = currentAnimationSpriteIndex;
 		Sprite lastSprite = brickType.Sprites[lastIndex];
 		spriteRenderer.sprite = brickType.HitSprite;
@@ -323,45 +393,60 @@ public class Brick : MonoBehaviour
 	private IEnumerator PrepareForFuseBurn()
 	{
 		yield return new WaitForSeconds(0.1f);
+		soundManager.PlaySfx("Explosion");
 		GameManager.Instance.DestroyBrickPointedByFuseType(this);
 	}
 
-	public IEnumerator BrickAnimationCoroutine()
+	private IEnumerator BrickAnimationCoroutine()
 	{
 		while (true)
 		{
-			GetComponent<SpriteRenderer>().sprite = brickType.Sprites[currentAnimationSpriteIndex];
+			spriteRenderer.sprite = brickType.Sprites[currentAnimationSpriteIndex];
 			currentAnimationSpriteIndex = (currentAnimationSpriteIndex + 1) % brickType.Sprites.Length;
 			yield return new WaitForSeconds(BrickProperties.FrameDurations[currentAnimationSpriteIndex]);
 		}
 	}
 
-	public IEnumerator FadingCoroutine()
+	private IEnumerator BreakAnimationCoroutine(Sprite[] animationSprites)
 	{
-		while (GetComponent<SpriteRenderer>().color.a > 0)
+		for (int i = 0; i < animationSprites.Length; i++)
 		{
-			Color color = GetComponent<SpriteRenderer>().color;
+			spriteRenderer.sprite = animationSprites[i];
+			yield return new WaitForSeconds(0.02f);
+		}
+		GameManager.Instance.DisposeBrick(this);
+	}
+
+	private IEnumerator FadingCoroutine()
+	{
+		while (spriteRenderer.color.a > 0)
+		{
+			Color color = spriteRenderer.color;
 			float newAlpha = color.a - fadingDecrement * Time.deltaTime;
 			color = new Color(color.r, color.g, color.b, newAlpha);
-			GetComponent<SpriteRenderer>().color = color;
+			spriteRenderer.color = color;
 
 			yield return null;
 		}
 		GameManager.Instance.DisposeBrick(this);
 	}
 
+	//Coroutine cannot be directly started from other class because stopAllCoroutines won't work properly
+	public void StartIcyFading() => StartCoroutine(IcyFadingCoroutine());
+
 	//fading coroutine used when Space Djoel hits the brick
-	public IEnumerator IcyFadingCoroutine()
+	private IEnumerator IcyFadingCoroutine()
 	{
 		brickType = GameManager.Instance.SpaceDjoelBrickType;
-		GetComponent<SpriteRenderer>().sprite = brickType.FirstSprite;
+		SpriteRenderer spriteRenderer = GetComponent<SpriteRenderer>();
+		spriteRenderer.sprite = brickType.FirstSprite;
 		SpaceDjoelBrick = true;
-		while (GetComponent<SpriteRenderer>().color.a > 0)
+		while (spriteRenderer.color.a > 0)
 		{
-			Color color = GetComponent<SpriteRenderer>().color;
+			Color color = spriteRenderer.color;
 			float newAlpha = color.a - (fadingDecrement / 3) * Time.deltaTime;
 			color = new Color(color.r, color.g, color.b, newAlpha);
-			GetComponent<SpriteRenderer>().color = color;
+			spriteRenderer.color = color;
 
 			yield return null;
 		}
@@ -382,4 +467,9 @@ public class Brick : MonoBehaviour
 	public bool TriggersOnHit(EffectTrigger effectTrigger) => effectTrigger == EffectTrigger.Hit || effectTrigger == EffectTrigger.Both;
 
 	public bool TriggersOnDestroy(EffectTrigger effectTrigger) => effectTrigger == EffectTrigger.Destroy || effectTrigger == EffectTrigger.Both;
+
+	private void OnDestroy()
+	{
+		DestroyParticles();
+	}
 }

@@ -1,7 +1,6 @@
 ﻿using System.Linq;
 using UnityEngine;
 
-//TODO make rocket fume effect with particles
 [RequireComponent(typeof(BoxCollider2D))]
 public class MegaMissile : MonoBehaviour
 {

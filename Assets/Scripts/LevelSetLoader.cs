@@ -11,27 +11,32 @@ public class LevelSetLoader : MonoBehaviour
 		string levelSetFileName = LoadedGameData.LevelSetFileName;
 		LevelSetData.LevelSet levelSet;
 		levelSet = FileImporter.LoadLevelSet(levelSetDirectory, levelSetFileName);
-		BrickType[] DefaultBrickTypes = LoadedGameData.DefaultBrickTypes ?? FileImporter.LoadBricks();
+		List<string> errorList = new List<string>();
+		BrickType[] DefaultBrickTypes = LoadedGameData.DefaultBrickTypes ?? FileImporter.LoadBricks(errorList);
 		BrickType[] CustomBrickTypes = new BrickType[0];
 		//if loaded level set has external files
-		if (FileImporter.LevelSetExternalFileDirectoryExists(levelSetDirectory, levelSetFileName))
+		if (FileImporter.LevelSetResourceDirectoryExists(levelSetDirectory, levelSetFileName))
 		{
-			HashSet<string> missingFileNames = new HashSet<string>();
 			SoundManager.Instance.LoadSounds(levelSetFileName, LoadedGameData.TestMode, levelSetDirectory);
+			TextureManager.Instance.LoadLevelSetTextures(levelSetDirectory, levelSetFileName);
+			MusicManager.Instance.LoadLevelSetTextures(levelSetDirectory, levelSetFileName, LoadedGameData.TestMode);
+			//TODO make brick manager to handle errors more elegantly
 			string levelSetCustomBricksPath = FileImporter.GetDirectoryNameInLevelSetDirectory(levelSetDirectory, levelSetFileName, "Bricks");
 			if (Directory.Exists(levelSetCustomBricksPath))
-				CustomBrickTypes = FileImporter.LoadBricks(missingFileNames, levelSetCustomBricksPath);
+				CustomBrickTypes = FileImporter.LoadBricks(errorList, levelSetCustomBricksPath);
 		}
 		if (LoadedGameData.TestMode == TestMode.None)
 		{
 			LevelPersistentData levelPersistentData = null;
+			System.DateTime levelSetDateTime = File.GetLastWriteTime(Path.Combine(levelSetDirectory, $"{levelSetFileName}.nlev"));
+			levelPersistentData = new LevelPersistentData(levelSetFileName, levelSetDateTime);
 			if (LoadedGameData.Continue)
-				levelPersistentData = FileImporter.LoadLevelPersistentData(levelSetFileName);
-			GameManager.Instance.InitLevel(levelSet, DefaultBrickTypes, CustomBrickTypes, levelPersistentData);
+				levelPersistentData.Load();
+			GameManager.Instance.InitLevelSet(levelSet, DefaultBrickTypes, CustomBrickTypes, levelPersistentData);
 		}
 		else
 		{
-			GameManager.Instance.InitLevel(levelSet, DefaultBrickTypes, CustomBrickTypes, LoadedGameData.TestLevelNum);
+			GameManager.Instance.InitLevelSet(levelSet, DefaultBrickTypes, CustomBrickTypes, LoadedGameData.TestLevelNum);
 		}
 	}
 }

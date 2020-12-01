@@ -55,7 +55,7 @@ PrefabInstance:
     - target: {fileID: 3895947172593246284, guid: 8562889e9fc009e4a8652f19ea34111f,
         type: 3}
       propertyPath: m_Name
-      value: CentralSparklingSystem
+      value: ExplosiveSparklingSystem
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 8562889e9fc009e4a8652f19ea34111f, type: 3}

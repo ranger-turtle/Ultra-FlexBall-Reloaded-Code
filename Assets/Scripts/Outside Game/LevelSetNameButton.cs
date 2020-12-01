@@ -1,38 +1,45 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-public class LevelSetNameButton : MonoBehaviour
+public class LevelSetNameButton : MonoBehaviour, IPointerClickHandler
 {
 	private ShutterAnimationManager coverAnimator;
 
 	internal string LevelSetName { get; set; }
 	internal string LevelSetFileName { get; set; }
+	internal bool FirstLevel { get; set; }
 
 	private void Awake()
 	{
 		coverAnimator = GameObject.Find("Canvas/CoverMask").GetComponent<ShutterAnimationManager>();
 	}
 
-	public void DoAction()
+	public void OnPointerClick(PointerEventData ped)
 	{
-#pragma warning disable CS0642 // Possible mistaken empty statement
-		if (Input.GetMouseButtonDown(1))
+		LoadedGameData.LevelSetFileName = LevelSetFileName;
+		if (ped.button == PointerEventData.InputButton.Right)
 		{
 			coverAnimator.Cover(WaitForSceneLoad("Leaderboard"));
 		}
-#pragma warning restore CS0642 // Possible mistaken empty statement
 		else
 		{
 			Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
-			if (Input.GetKey(KeyCode.LeftControl))
-				LoadedGameData.Continue = false;
-			LoadedGameData.LevelSetFileName = LevelSetFileName;
-			//LoadedGameData.LevelSetName = LevelSetName;
+			LoadedGameData.Continue = Input.GetKey(KeyCode.LeftControl) || FirstLevel ? false : true;
+			CheckSave();
 			coverAnimator.Cover(WaitForSceneLoad("Level"));
 		}
+	}
+
+	private void CheckSave()
+	{
+		string savePath = $"Saves/{LevelSetFileName}.sav";
+		if (!LoadedGameData.Continue && File.Exists(savePath))
+			File.Delete(savePath);
 	}
 
 	private IEnumerator WaitForSceneLoad(string sceneName)

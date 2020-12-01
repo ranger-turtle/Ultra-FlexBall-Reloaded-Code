@@ -1,27 +1,70 @@
-﻿using UnityEngine;
+﻿using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
 
+[RequireComponent(typeof(LineRenderer))]
 public class ZapRenderer : MonoBehaviour
 {
+#pragma warning disable CS0649
 	[SerializeField]
-#pragma warning disable CS0649 // Field 'ProtectiveBarrierRenderer.variableElectrode' is never assigned to, and will always have its default value null
-	private GameObject variableElectrode;
-#pragma warning restore CS0649 // Field 'ProtectiveBarrierRenderer.variableElectrode' is never assigned to, and will always have its default value null
+	private GameObject electrodeOne;
+	[SerializeField]
+	private GameObject electrodeTwo;
 	private LineRenderer lineRenderer;
+#pragma warning restore CS0649 
+
+	private const float maxVerticalRange = 9.0f / 48.0f;
+	private const float maxLength = 512.0f / 48.0f;
+
+	private const float maxFragmentLength = 100.0f / 48.0f;
+	private const float minFragmentLength = 20.0f / 48.0f;
+
+	private const int middlePointCount = 10;
+
 	[SerializeField]
-#pragma warning disable CS0649 // Field 'ProtectiveBarrierRenderer.indexOfVertexToChange' is never assigned to, and will always have its default value 0
-	private int indexOfVertexToChange;
-#pragma warning restore CS0649 // Field 'ProtectiveBarrierRenderer.indexOfVertexToChange' is never assigned to, and will always have its default value 0
+	private AnimationCurve curve;
 
 	// Start is called before the first frame update
-	void Start() => lineRenderer = GetComponent<LineRenderer>();
+	void Start()
+	{
+		lineRenderer = GetComponent<LineRenderer>();
+		StartCoroutine(Animate());
+	}
+
+	private void OnEnable() => Start();
 
 	// Update is called once per frame
-	void Update()
+	private IEnumerator Animate()
     {
-		Vector3[] vertices = new Vector3[lineRenderer.positionCount];
-		int positionNumber = lineRenderer.GetPositions(vertices);
-		lineRenderer.SetPosition(indexOfVertexToChange, variableElectrode.transform.position);
+		while (true)
+		{
+			Vector3[] vertices = new Vector3[middlePointCount + 2];
+			vertices[0] = new Vector3(electrodeOne.transform.position.x, electrodeOne.transform.position.y, 2.0f);
+			vertices[vertices.Length - 1] = new Vector3(electrodeTwo.transform.position.x, electrodeTwo.transform.position.y, 2.0f);
+			Vector3 firstVertex = vertices[0];
+			Vector3 lastVertex = vertices[vertices.Length - 1];
+			if (firstVertex.x < lastVertex.x)
+			{
+				float actualLengthToMaxLengthRatio = (lastVertex.x - firstVertex.x) / maxLength;
+				float yFactor = curve.Evaluate(actualLengthToMaxLengthRatio);
+				float zapXPosition = vertices[0].x;
+				float zapYPosition = 0;
+				for (int i = 1; i < vertices.Length - 1; i++)
+				{
+					float increment = Random.Range(minFragmentLength, maxFragmentLength) * actualLengthToMaxLengthRatio; 
+					while (zapXPosition + increment > lastVertex.x)
+						increment /= 2.0f;
+					zapXPosition += increment;
+					zapYPosition = firstVertex.y + Random.Range(-maxVerticalRange, maxVerticalRange) * yFactor;
+					vertices[i] = new Vector3(zapXPosition, zapYPosition, 2.0f);
+				}
+				lineRenderer.positionCount = vertices.Length;
+				lineRenderer.SetPositions(vertices);
+			}
+			yield return new WaitForSeconds(0.05f);
+		}
     }
 
-	//TODO Make Coroutine procedurally generating lightning effect in base class Lightning Renderer
+	//BONUS Try making last nodes not too close to the last point
 }

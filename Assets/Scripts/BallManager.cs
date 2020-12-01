@@ -18,6 +18,8 @@ public class BallManager : MonoBehaviour
 	}
 	#endregion
 
+	public const int maxBallNumber = 52;
+
 	private List<GameObject> balls;
 
 	[SerializeField]
@@ -30,9 +32,9 @@ public class BallManager : MonoBehaviour
 
 	private Ball initialBall;
 
-	internal const float minBallSpeed = 0.10f;
-	internal const float maxBallSpeed = 0.17f;
-	internal const float acceleration = 1.001f;
+	internal const float minBallSpeed = 0.12f;
+	internal const float maxBallSpeed = 0.27f;
+	internal const float acceleration = 1.005f;
 
 	private SoundManager soundManager;
 
@@ -48,7 +50,7 @@ public class BallManager : MonoBehaviour
 	{
 		Vector3 paddlePosition = Paddle.Instance.transform.position;
 		float StuckY = Paddle.Instance.GetComponent<BoxCollider2D>().bounds.max.y + ballPrefab.GetComponent<BoxCollider2D>().bounds.extents.y + 0.3f;
-		Vector3 startingPosition = new Vector3(paddlePosition.x, StuckY);
+		Vector3 startingPosition = new Vector3(paddlePosition.x, StuckY, ballPrefab.transform.position.z);
 		initialBall = Instantiate(ballPrefab, startingPosition, Quaternion.identity);
 		initialBall.StickToPaddle(Vector2.up * minBallSpeed, 0);
 		balls = new List<GameObject>() { initialBall.gameObject };
@@ -71,6 +73,19 @@ public class BallManager : MonoBehaviour
 		return newBallObject;
 	}
 
+	internal GameObject CreateNewBall()
+	{
+		Ball newBallObject = Instantiate(ballPrefab);
+		newBallObject.BallSize = (int)GameManager.Instance.BallSize;
+		if (GameManager.Instance.ExplosiveBall)
+			ParticleManager.Instance.GenerateExplosiveBallParticles(newBallObject.gameObject, GameManager.Instance.BallSize);
+		if (GameManager.Instance.PenetratingBall)
+			ParticleManager.Instance.GeneratePenetratingBallParticles(newBallObject.gameObject, GameManager.Instance.BallSize);
+		newBallObject.UpdateSize();
+		balls.Add(newBallObject.gameObject);
+		return newBallObject.gameObject;
+	}
+
 	private void ApplyParticlesToBalls(Action<GameObject, BallSize> applyParticlesToBall)
 	{
 		foreach (var ball in balls)
@@ -89,53 +104,63 @@ public class BallManager : MonoBehaviour
 
 	public void SplitBall()
 	{
-		List<GameObject> newBalls = new List<GameObject>();
-		foreach (var ball in balls)
+		if (balls.Count > 0)
 		{
-			GameObject newBallObject = CloneBall(ball, false);
-			Vector3 originalBallVelocity = ball.GetComponent<Ball>().CurrentVelocity;
-			Vector3 newBallVelocity = new Vector3(originalBallVelocity.x, originalBallVelocity.y);
-			if (originalBallVelocity.x != 0 && originalBallVelocity.y != 0)
+			List<GameObject> newBalls = new List<GameObject>();
+			for (int i = 0; i < balls.Count && balls.Count < maxBallNumber; i++)
 			{
-				if (Mathf.Abs(originalBallVelocity.x) > Mathf.Abs(originalBallVelocity.y))
-					newBallVelocity.y = -newBallVelocity.y;
-				else
-					newBallVelocity.x = -newBallVelocity.x;
+				GameObject newBallObject = CloneBall(balls[i], false);
+				Vector3 originalBallVelocity = balls[i].GetComponent<Ball>().CurrentVelocity;
+				Vector3 newBallVelocity = new Vector3(originalBallVelocity.x, originalBallVelocity.y);
+				if (originalBallVelocity.x != 0 && originalBallVelocity.y != 0)
+				{
+					if (Mathf.Abs(originalBallVelocity.x) > Mathf.Abs(originalBallVelocity.y))
+						newBallVelocity.y = -newBallVelocity.y;
+					else
+						newBallVelocity.x = -newBallVelocity.x;
+				}
+				newBallObject.GetComponent<Ball>().CurrentVelocity = newBallVelocity;
+				newBalls.Add(newBallObject);
 			}
-			newBallObject.GetComponent<Ball>().CurrentVelocity = newBallVelocity;
-			newBalls.Add(newBallObject);
+			balls = balls.Concat(newBalls).ToList();
 		}
-		balls = balls.Concat(newBalls).ToList();
+		else
+			InitBall();
 	}
 
 	public void MegaSplit()
 	{
-		GameManager.Instance.ExplosiveBall = false;
-		GameManager.Instance.PenetratingBall = false;
-		List<GameObject> newBalls = new List<GameObject>();
-		RemoveParticlesFromBalls();
-		GameObject originBall = balls[UnityEngine.Random.Range(0, balls.Count)];
-		const int ballNumber = 30;
-		for (int i = 0; i < ballNumber; i++)
+		if (balls.Count > 0)
 		{
-			Ball originBallScript = originBall.GetComponent<Ball>();
-			float angle = Mathf.PI*2.0f / ballNumber * i + 0.1f;
-			//float speed = Mathf.Max(originBallRb.velocity.x, originBallRb.velocity.y);
-			//Debug.Log($"Velocity: {originBallRb.velocity}");
-			//Debug.Log($"Magnitude: {magnitude}");
-			float x = originBallScript.CurrentVelocity.x;
-			float y = originBallScript.CurrentVelocity.y;
-			//Quaternion rotation = Quaternion.AngleAxis(angle, Vector3.up);
-			//Vector3 direction = rotation * Vector3.forward;
-			Vector2 direction = new Vector3(Mathf.Cos(angle), Mathf.Sign(angle));
-			GameObject newBallObject = Instantiate(originBall, originBall.transform.position, Quaternion.identity);
-			newBallObject.GetComponent<Ball>().CurrentVelocity = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle)) * maxBallSpeed;
-			newBalls.Add(newBallObject);
+			GameManager.Instance.ExplosiveBall = false;
+			GameManager.Instance.PenetratingBall = false;
+			List<GameObject> newBalls = new List<GameObject>();
+			RemoveParticlesFromBalls();
+			GameObject originBall = balls[UnityEngine.Random.Range(0, balls.Count)];
+			const int ballNumber = 30;
+			for (int i = 0; i < ballNumber && balls.Count < maxBallNumber; i++)
+			{
+				Ball originBallScript = originBall.GetComponent<Ball>();
+				float angle = Mathf.PI * 2.0f / ballNumber * i + 0.1f;
+				//float speed = Mathf.Max(originBallRb.velocity.x, originBallRb.velocity.y);
+				//Debug.Log($"Velocity: {originBallRb.velocity}");
+				//Debug.Log($"Magnitude: {magnitude}");
+				float x = originBallScript.CurrentVelocity.x;
+				float y = originBallScript.CurrentVelocity.y;
+				//Quaternion rotation = Quaternion.AngleAxis(angle, Vector3.up);
+				//Vector3 direction = rotation * Vector3.forward;
+				Vector2 direction = new Vector3(Mathf.Cos(angle), Mathf.Sign(angle));
+				GameObject newBallObject = Instantiate(originBall, originBall.transform.position, Quaternion.identity);
+				newBallObject.GetComponent<Ball>().CurrentVelocity = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle)) * maxBallSpeed;
+				newBalls.Add(newBallObject);
+			}
+			balls = balls.Concat(newBalls).ToList();
 		}
-		balls = balls.Concat(newBalls).ToList();
+		else
+			InitBall();
 	}
 
-	public void UpdateSizeOfAllStuckToPaddleBalls()
+	public void UpdateSizeOfAllBalls()
 	{
 		IEnumerable<Ball> stuckBalls = balls.Select(b => b.GetComponent<Ball>()).Where(b => b.StuckToPaddle);
 		foreach (Ball ball in stuckBalls)
@@ -163,6 +188,7 @@ public class BallManager : MonoBehaviour
 		if (Input.GetMouseButtonDown(0) && balls.Any(b => b.GetComponent<Ball>().StuckToPaddle))
 		{
 			Paddle.Instance.MagnetActive = GameManager.Instance.MagnetPaddle;
+			Paddle.Instance.SetMagnetZapVisibility(false);
 			ReleaseBalls();
 			soundManager.PlaySfx("Normal Ball Bounce");
 		}

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using LevelSetData;
+using System.Linq;
 
 public class ParticleManager : MonoBehaviour
 {
@@ -45,8 +46,15 @@ public class ParticleManager : MonoBehaviour
 	[SerializeField]
 	private ParticleSystem HelperPowerUpHaloPrefab;
 
+	[SerializeField]
+	private ParticleSystem PaddleSideHitSparkles;
+	[SerializeField]
+	private ParticleSystem HighSpeedPaddleBounceSparkles;
+
 	private readonly Gradient redBlueThrustGradient = new Gradient();
 	private readonly Gradient yellowCyanThrustGradient = new Gradient();
+
+	private Dictionary<int, Gradient> brickParticleGradients;
 
 	public void Start()
 	{
@@ -60,20 +68,33 @@ public class ParticleManager : MonoBehaviour
 		yellowCyanThrustGradient.colorKeys = yellowCyanGradientColorKeys;
 	}
 
-	public ParticleSystem GenererateBrickParticle(BrickProperties brickProperties)
+	public void CreateBrickParticles(IEnumerable<BrickType> brickProperties)
+	{
+		brickParticleGradients = brickProperties.Where(b => b.Properties.IsChimneyLike).ToDictionary(k => k.Properties.Id, v => GenerateBrickParticleGradient(v.Properties));
+	}
+
+	public ParticleSystem GenerateBrickParticle(BrickProperties brickProperties)
 	{
 		ParticleSystem particleSystem;
 		switch (brickProperties.ChimneyType)
 		{
-			case ChimneyType.Regular:
+			case ChimneyType.Vertical:
 				particleSystem = Instantiate(VerticalParticleSystemPrefab);
 				break;
-			case ChimneyType.Confetti:
+			case ChimneyType.Sprinkling:
 				particleSystem = Instantiate(SprinklerParticleSystemPrefab);
 				break;
 			default:
 				return null;
 		}
+		Gradient gradient = GetBrickParticles(brickProperties.Id);
+		ParticleSystem.MainModule mainModule = particleSystem.main;
+		mainModule.startColor = new ParticleSystem.MinMaxGradient(gradient) { mode = ParticleSystemGradientMode.RandomColor };
+		return particleSystem;
+	}
+
+	private Gradient GenerateBrickParticleGradient(BrickProperties brickProperties)
+	{
 		Color color1 = new Color(brickProperties.Color1.Red / 255.0f, brickProperties.Color1.Green / 255.0f, brickProperties.Color1.Blue / 255.0f);
 		Color color2 = new Color(brickProperties.Color2.Red / 255.0f, brickProperties.Color2.Green / 255.0f, brickProperties.Color2.Blue / 255.0f);
 		Gradient gradient = new Gradient();
@@ -83,10 +104,10 @@ public class ParticleManager : MonoBehaviour
 		gradientColorKey[1].color = color2;
 		gradientColorKey[1].time = 1.0f;
 		gradient.SetKeys(gradientColorKey, new GradientAlphaKey[2] { new GradientAlphaKey(1.0f, 0), new GradientAlphaKey(1.0f, 1.0f) });
-		ParticleSystem.MainModule mainModule = particleSystem.main;
-		mainModule.startColor = new ParticleSystem.MinMaxGradient(gradient) { mode = ParticleSystemGradientMode.RandomColor };
-		return particleSystem;
+		return gradient;
 	}
+
+	private Gradient GetBrickParticles(int brickId) => brickParticleGradients[brickId];
 
 	public void GenerateBrickHitEffect(Vector3 brickHitPosition, Vector2 normal)
 	{
@@ -125,18 +146,22 @@ public class ParticleManager : MonoBehaviour
 			ParticleSystem particleSystem = Instantiate(ballParticleSystem, ball.transform);
 			particleSystem.gameObject.name = name;
 			ParticleSystem.ShapeModule shapeModule = particleSystem.shape;
-			switch (ballSize)//BONUS change to switch expression after C# version upgrade
-			{
-				case BallSize.Normal:
-					shapeModule.radius = 0.09f;
-					break;
-				case BallSize.Big:
-					shapeModule.radius = 0.15f;
-					break;
-				case BallSize.Megajocke:
-					shapeModule.radius = 0.78f;
-					break;
-			}
+			shapeModule.radius = GetRadiusBasedOnBallSize(ballSize);
+		}
+	}
+
+	private float GetRadiusBasedOnBallSize(BallSize ballSize)
+	{
+		switch (ballSize)//BONUS change to switch expression after C# version upgrade
+		{
+			case BallSize.Normal:
+				return 0.09f;
+			case BallSize.Big:
+				return 0.15f;
+			case BallSize.Megajocke:
+				return 0.78f;
+			default:
+				return 0;
 		}
 	}
 
@@ -145,6 +170,24 @@ public class ParticleManager : MonoBehaviour
 
 	public void GeneratePenetratingBallParticles(GameObject ball, BallSize ballSize)
 		=> GenerateBallParticles(PenetratingParticleSystemPrefab, ball, ballSize, PenetratingBallParticleObjectName);
+
+	private void UpdateBallParticles(GameObject ball, string name)
+	{
+		GameObject particles = ball.transform.Find(name)?.gameObject;
+		if (particles)
+		{
+			ParticleSystem particleSystem = particles.GetComponent<ParticleSystem>();
+			ParticleSystem.ShapeModule shapeModule = particleSystem.shape;
+			shapeModule.radius = GetRadiusBasedOnBallSize((BallSize)ball.GetComponent<Ball>().BallSize);
+			//TODO increase particle rate with ball size
+		}
+	}
+
+	public void UpdateAllBallParticles(GameObject ball)
+	{
+		UpdateBallParticles(ball, ExplodingBallParticleObjectName);
+		UpdateBallParticles(ball, PenetratingBallParticleObjectName);
+	}
 
 	private void DestroyBallParticles(GameObject ball, string name)
 	{
@@ -205,5 +248,17 @@ public class ParticleManager : MonoBehaviour
 			particleSystem.Stop();
 			Destroy(particles, particleSystem.main.startLifetime.constant);// + (particleSystem.main.duration - particleSystem.time));
 		}
+	}
+
+	public void GeneratePaddleSideHitSparkles(Vector3 position)
+	{
+		ParticleSystem particles = Instantiate(PaddleSideHitSparkles, position, Quaternion.identity);
+		Destroy(particles.gameObject, particles.main.startLifetime.constant);
+	}
+
+	public void GenerateHighSpeedPaddleBounceSparkles(Vector3 position)
+	{
+		ParticleSystem particles = Instantiate(HighSpeedPaddleBounceSparkles, position, Quaternion.identity);
+		Destroy(particles.gameObject, particles.main.startLifetime.constant);
 	}
 }

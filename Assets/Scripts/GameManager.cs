@@ -1,4 +1,5 @@
-﻿using LevelSetData;
+﻿#define DEBUG
+using LevelSetData;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -12,7 +13,8 @@ public enum BallSize
 	Normal, Big, Megajocke
 }
 
-//TODO secure errors with popup windows
+//UNDONE secure errors with popup windows
+//FIXME check megajockes after MegaSplit collect
 public class GameManager : MonoBehaviour
 {
 	#region Singleton
@@ -50,11 +52,14 @@ public class GameManager : MonoBehaviour
 #pragma warning disable CS0649 // Field 'GameManager.hudManager' is never assigned to, and will always have its default value null
 	private HUDManager hudManager;
 #pragma warning restore CS0649 // Field 'GameManager.hudManager' is never assigned to, and will always have its default value null
+	[SerializeField]
+	private ErrorMessage errorMessage;
 
 	private LevelSet CurrentLevelSet;
 	private int LevelIndex;
 
 	private int numberOfBricksRequiredToComplete;
+	private bool levelCompleted;
 
 	private int paddles = 3;
 	[SerializeField]
@@ -198,6 +203,8 @@ public class GameManager : MonoBehaviour
 
 	internal BrickType SpaceDjoelBrickType => LevelSetBrickTypes[IceBrickId - 1];
 
+	private LevelPersistentData levelPersistentData;
+
 	private void Update()
 	{
 		if (shutterAnimator.Uncovered)
@@ -216,6 +223,8 @@ public class GameManager : MonoBehaviour
 				hudManager.Pause();
 		}
 	}
+
+	private void FixedUpdate() => CheckIfLevelIsCompleted();
 
 	private void ResetOnLoseLife()
 	{
@@ -249,58 +258,95 @@ public class GameManager : MonoBehaviour
 
 	public void LoadLevelSetExternalFiles()
 	{
-		HashSet<string> missingFileNames = new HashSet<string>();
-		SoundManager.Instance.UpdateLevelSetSounds(CurrentLevelSet, missingFileNames);
-		if (missingFileNames.Count > 0)
+		List<string> errorList = new List<string>();
+		SoundManager.Instance.UpdateLevelSetSounds(CurrentLevelSet, errorList);
+		TextureManager.Instance.UpdateLevelSetTextures(CurrentLevelSet, errorList);
+		MusicManager.Instance.UpdateLevelSetMusic(CurrentLevelSet, errorList);
+		if (errorList.Count > 0)
 		{
-			foreach (string min in missingFileNames)
+#if DEBUG
+			foreach (string min in errorList)
 			{
-				Debug.LogError($"File {min} is missing.");
+				Debug.LogError(min);
 			}
-			//TODO GUI window about missing files
+#endif
+			Logger.SaveLevelSetErrorLog($"{LoadedGameData.LevelSetDirectory}", $"{LoadedGameData.LevelSetFileName}", errorList);
+			errorMessage.Show();
 		}
 	}
 
 	public void LoadLevelExternalFiles()
 	{
-		HashSet<string> missingFileNames = new HashSet<string>();
-		SoundManager.Instance.UpdateLevelSounds(CurrentLevelSet.Levels[LevelIndex], CurrentLevelSet.LevelSetProperties.Name, missingFileNames);
-		if (missingFileNames.Count > 0)
+		List<string> errorList = new List<string>();
+		SoundManager.Instance.UpdateLevelSounds(CurrentLevelSet.Levels[LevelIndex], errorList);
+		TextureManager.Instance.UpdateLevelTextures(CurrentLevelSet.Levels[LevelIndex], errorList);
+		MusicManager.Instance.UpdateLevelMusic(CurrentLevelSet.Levels[LevelIndex], errorList);
+		if (errorList.Count > 0)
 		{
-			foreach (string min in missingFileNames)
+			foreach (string min in errorList)
 			{
 				Debug.LogError($"File {min} is missing.");
 			}
-			//TODO GUI window about missing files
+			Logger.SaveLevelErrorLog($"{LoadedGameData.LevelSetDirectory}", $"{LoadedGameData.LevelSetFileName}", LevelIndex, CurrentLevelSet.Levels[LevelIndex].LevelProperties.Name, errorList);
+			errorMessage.Show();
 		}
 	}
 
-	public void InitLevel(LevelSet levelSet, BrickType[] defaultBrickTypes, BrickType[] customBrickTypes, LevelPersistentData levelPersistentData = null)
+	private void CheckIfIdsArePresent()
 	{
-		CurrentLevelSet = levelSet;
-		LoadLevelSetExternalFiles();
-		if (levelPersistentData != null)
+		bool anyMissingId = false;
+		IEnumerable<int> loadedBrickTypeIds = LevelSetBrickTypes.Select(bt => bt.Properties.Id);
+		foreach (Level level in CurrentLevelSet.Levels)
 		{
-			LevelIndex = levelPersistentData.LevelNum;
-			paddles = levelPersistentData.Paddles;
-			paddleNumberText.text = paddles.ToString();
-			AddToScore(levelPersistentData.CurrentScore);
+			for (int i = 0; i < LevelSet.ROWS; i++)
+			{
+				for (int j = 0; j < LevelSet.COLUMNS; j++)
+				{
+					if (level.Bricks[i, j].BrickId != 0 && !loadedBrickTypeIds.Contains(level.Bricks[i, j].BrickId))
+					{
+						level.Bricks[i, j].BrickId = 0;
+						anyMissingId = true;
+					}
+				}
+			}
 		}
+		//TODO do more precise brick error handling (no info about failed bricks is so far)
+		if (anyMissingId)
+			errorMessage.Show("Some bricks in levels belong to types which are not loaded. They will be ignored. Please check your bricks with level editor.");
+	}
 
-		LevelSetBrickTypes = defaultBrickTypes.Concat(customBrickTypes).ToArray();
+	public void InitLevelSet(LevelSet levelSet, BrickType[] defaultBrickTypes, BrickType[] customBrickTypes, LevelPersistentData levelPersistentData)
+	{
+		CurrentLevelSet = levelSet;
+		LoadLevelSetExternalFiles();
+
+		this.levelPersistentData = levelPersistentData;
+		LevelIndex = levelPersistentData.LevelNum;
+		paddles = levelPersistentData.Paddles;
+		paddleNumberText.text = paddles.ToString();
+		AddToScore(levelPersistentData.CurrentScore);
+
+		PrepareBrickTypes(defaultBrickTypes, customBrickTypes);
 
 		InitLevel();
 	}
 
-	public void InitLevel(LevelSet levelSet, BrickType[] defaultBrickTypes, BrickType[] customBrickTypes, int levelNum)
+	public void InitLevelSet(LevelSet levelSet, BrickType[] defaultBrickTypes, BrickType[] customBrickTypes, int startLevelNum)
 	{
 		CurrentLevelSet = levelSet;
+		LevelIndex = startLevelNum;
 		LoadLevelSetExternalFiles();
-		LevelIndex = levelNum;
 
-		LevelSetBrickTypes = defaultBrickTypes.Concat(customBrickTypes).ToArray();
+		PrepareBrickTypes(defaultBrickTypes, customBrickTypes);
 
 		InitLevel();
+	}
+
+	private void PrepareBrickTypes(BrickType[] defaultBrickTypes, BrickType[] customBrickTypes)
+	{
+		LevelSetBrickTypes = defaultBrickTypes.Concat(customBrickTypes).ToArray();
+		CheckIfIdsArePresent();
+		ParticleManager.Instance.CreateBrickParticles(LevelSetBrickTypes);
 	}
 
 	private void InitLevel()
@@ -308,32 +354,34 @@ public class GameManager : MonoBehaviour
 		//TextureManager.Instance.LoadLevelTextures(LoadedGameData.LevelSetFileName, CurrentLevelSet.Levels[LevelIndex]);
 		LoadLevelExternalFiles();
 		hudManager.UpdateAndDisplayLevelNameForAMinute(LevelIndex + 1, CurrentLevelSet.Levels[LevelIndex].LevelProperties.Name);
-		float brickWidth = LevelSetBrickTypes[0].BrickUnityWidth;
-		float brickHeight = LevelSetBrickTypes[0].BrickUnityHeight;
 		for (int brickY = 0; brickY < LevelSet.ROWS; brickY++)
 		{
 			for (int brickX = 0; brickX < LevelSet.COLUMNS; brickX++)
 			{
 				int idOfBrickInCoordinates = CurrentLevelSet.Levels[LevelIndex].Bricks[brickY, brickX].BrickId;
 				if (idOfBrickInCoordinates != 0)
-					GenerateBrick(idOfBrickInCoordinates, brickWidth, brickHeight, brickX, brickY);
+					GenerateBrick(idOfBrickInCoordinates, brickX, brickY);
 			}
 		}
 		SetBricksRequiredToCompleteNumber();
 	}
 
-	private void GenerateBrick(int brickTypeId, float brickWidth, float brickHeight, int brickX, int brickY)
+	private void GenerateBrick(int brickTypeId, int brickX, int brickY, bool tryHide = true, bool spaceDjoelBrick = false)
 	{
-		BrickType brickType = LevelSetBrickTypes.First(bt => bt.Properties.Id == brickTypeId);
-		Vector3 position = new Vector3(firstBrickPos.transform.position.x + (brickX * brickWidth), firstBrickPos.transform.position.y - (brickY * brickHeight), 2);
+		BrickType brickType = GetBrickTypeById(brickTypeId);
+		Vector3 position = new Vector3(firstBrickPos.transform.position.x + (brickX * BrickType.BrickUnityWidth), firstBrickPos.transform.position.y - (brickY * BrickType.BrickUnityHeight), 2);
 		GameObject brick = Instantiate(brickPrefab, position: position, Quaternion.identity);
-		brick.GetComponent<SpriteRenderer>().sprite = brickType.Sprites[0];
+		brick.GetComponent<SpriteRenderer>().sprite = brickType.FirstSprite;
 		Brick brickScript = brick.GetComponent<Brick>();
 		brickScript.brickType = brickType;
 		brickScript.x = brickX;
 		brickScript.y = brickY;
-		brick.name = $"Brick nr {brickX + (brickY * LevelSet.COLUMNS)}";
-		bricks[brickX + (brickY * LevelSet.COLUMNS)] = brickScript;
+		if (tryHide)
+			brickScript.TryHide();
+		else if (spaceDjoelBrick)
+			brickScript.StartIcyFading();
+		brick.name = $"Brick nr {GetBrickIndex(brickX, brickY)}";
+		bricks[GetBrickIndex(brickX, brickY)] = brickScript;
 	}
 
 	private void DecreasePaddlePowerUpLevels()
@@ -342,9 +390,11 @@ public class GameManager : MonoBehaviour
 		DecreaseMegaMissiles();
 	}
 
-	internal Brick GetBrickByCoordinates(int x, int y) => bricks[x + (y * LevelSet.COLUMNS)];
+	internal Brick GetBrickByCoordinates(int x, int y) => bricks[GetBrickIndex(x, y)];
 
-	internal BrickType GetBrickById(int newBrickId) => LevelSetBrickTypes.First(b => b.Properties.Id == newBrickId);
+	internal BrickType GetBrickTypeById(int newBrickId) => LevelSetBrickTypes.First(b => b.Properties.Id == newBrickId);
+
+	private int GetBrickIndex(int x, int y) => x + (y * LevelSet.COLUMNS);
 
 	//points can be negative so Mathf.Max invocation is necessary
 	internal void AddToScore(int points) => scoreText.text = $"{Mathf.Max(int.Parse(scoreText.text) + points, 0)}";
@@ -353,7 +403,7 @@ public class GameManager : MonoBehaviour
 	{
 		if (BallSize != BallSize.Megajocke)
 			BallSize++;
-		BallManager.Instance.UpdateSizeOfAllStuckToPaddleBalls();
+		BallManager.Instance.UpdateSizeOfAllBalls();
 	}
 
 	public void DecreaseBall()
@@ -361,13 +411,14 @@ public class GameManager : MonoBehaviour
 		if (BallSize != BallSize.Normal)
 			BallSize--;
 		RemoveBallUpgrades();
-		BallManager.Instance.UpdateSizeOfAllStuckToPaddleBalls();
+		BallManager.Instance.UpdateSizeOfAllBalls();
 	}
 
 	private void RemoveBallUpgrades()
 	{
 		ExplosiveBall = false;
 		PenetratingBall = false;
+		BallManager.Instance.RemoveParticlesFromBalls();
 	}
 
 	internal void IncreasePaddleLength()
@@ -401,9 +452,9 @@ public class GameManager : MonoBehaviour
 		///explosion.GetComponent<Explosion>().Activate();
 	}
 
-	public void DetonateBrick(int detonateId, DetonationRange detonationRange)
+	public void DetonateOrChangeBrick(int oldBrickTypeId, int newBrickTypeId, DetonationRange detonationRange)
 	{
-		List<Brick> bricks = this.bricks.Where(b => b?.GetComponent<Brick>().brickType.Properties.Id == detonateId).ToList();
+		List<Brick> bricks = this.bricks.Where(b => b?.brickType.Properties.Id == oldBrickTypeId).ToList();
 		if (bricks.Count > 0)
 		{
 			SoundManager.Instance.PlaySfx("Bang");
@@ -412,14 +463,25 @@ public class GameManager : MonoBehaviour
 				case DetonationRange.One:
 					int chosenIndex = UnityEngine.Random.Range(0, bricks.Count);
 					Brick chosenBrick = bricks[chosenIndex];
-					chosenBrick.TryIncreasePowerUpField();
-					chosenBrick.Break(chosenBrick.BrickProperties.Points, null, true);
+					//BONUS make internal function with it
+					if (newBrickTypeId == 0)//If it's detonating brick
+					{
+						chosenBrick.TryIncreasePowerUpField();
+						chosenBrick.Break(chosenBrick.BrickProperties.Points, null, true);
+					}
+					else
+						chosenBrick.ChangeBrickType(newBrickTypeId);
 					break;
 				case DetonationRange.All:
 					foreach (Brick brick in bricks)
 					{
-						brick.TryIncreasePowerUpField();
-						brick.Break(brick.BrickProperties.Points, null, true);
+						if (newBrickTypeId == 0)//If it's detonating brick
+						{
+							brick.TryIncreasePowerUpField();
+							brick.Break(brick.BrickProperties.Points, null, true);
+						}
+						else
+							brick.ChangeBrickType(newBrickTypeId);
 					}
 					break;
 				default:
@@ -434,26 +496,29 @@ public class GameManager : MonoBehaviour
 		int brickY = -1;
 		switch (brickScript.brickType.Properties.FuseDirection)
 		{
-			case Direction.Up:
+			case Direction.Up when brickScript.y > 0:
 				brickX = brickScript.x;
 				brickY = brickScript.y - 1;
 				break;
-			case Direction.Right:
+			case Direction.Right when brickScript.x < LevelSet.COLUMNS + 1:
 				brickX = brickScript.x + 1;
 				brickY = brickScript.y;
 				break;
-			case Direction.Down:
+			case Direction.Down when brickScript.y < LevelSet.ROWS + 1:
 				brickX = brickScript.x;
 				brickY = brickScript.y + 1;
 				break;
-			case Direction.Left:
+			case Direction.Left when brickScript.x > 0:
 				brickX = brickScript.x - 1;
 				brickY = brickScript.y;
 				break;
 		}
-		Brick pointedBrick = bricks[brickX + (brickY * LevelSet.COLUMNS)];
-		if (pointedBrick?.brickType.Properties.ExplosionResistant == false)
-			pointedBrick.Break(pointedBrick.brickType.Properties.Points / 2, force: true);
+		if (brickX >= 0 && brickY >= 0)
+		{
+			Brick pointedBrick = bricks[GetBrickIndex(brickX, brickY)];
+			if (pointedBrick?.brickType.Properties.ExplosionResistant == false)
+				pointedBrick.Break(pointedBrick.brickType.Properties.Points / 2, force: true);
+		}
 	}
 
 	public void EraseBricks()
@@ -469,6 +534,7 @@ public class GameManager : MonoBehaviour
 		Ball[] ballsToClean = FindObjectsOfType<Ball>();
 		Bullet[] bulletsToClean = FindObjectsOfType<Bullet>();
 		SpaceDjoel[] djoelsToClean = FindObjectsOfType<SpaceDjoel>();
+		ParticleSystem[] particleSystems = FindObjectsOfType<ParticleSystem>().Where(p => p.gameObject.tag == "particlesToClean").ToArray();
 		foreach (var powerUp in powerUpsToClean)
 			Destroy(powerUp.gameObject);
 		foreach (var ball in ballsToClean)
@@ -477,14 +543,19 @@ public class GameManager : MonoBehaviour
 			Destroy(bullet.gameObject);
 		foreach (var djoel in djoelsToClean)
 			Destroy(djoel.gameObject);
+		foreach (var particleSystem in particleSystems)
+			Destroy(particleSystem.gameObject);
 		SpaceDjoelManager.Instance.ResetDjoels();
 	}
 
 	public void EraseExplosions()
 	{
 		Explosion[] explosionsToErase = FindObjectsOfType<Explosion>();
+		MegaExplosion[] megaExplosionsToErase = FindObjectsOfType<MegaExplosion>();
 		foreach (var explosion in explosionsToErase)
 			Destroy(explosion.gameObject);
+		foreach (var megaExplosionToErase in megaExplosionsToErase)
+			Destroy(megaExplosionToErase.gameObject);
 	}
 
 	public void DisposeBrick(Brick brick)
@@ -497,25 +568,28 @@ public class GameManager : MonoBehaviour
 	public void DecrementRequiredBricks()
 	{
 		numberOfBricksRequiredToComplete--;
-		//Debug.Log($"Bricks left: {NumberOfBricksRequiredToComplete}");
-		CheckIfLevelIsCompleted();
+		Debug.Log($"Bricks left: {numberOfBricksRequiredToComplete}");
 	}
 
 	public void CheckIfLevelIsCompleted()
 	{
-		if (numberOfBricksRequiredToComplete == 0)
+		if (numberOfBricksRequiredToComplete <= 0 && !levelCompleted)
 		{
+			levelCompleted = true;
 			CoverSceneAndDoAction(CleanAfterFinishingLevel, "Win");
 		}
 	}
 
 	private void SetBricksRequiredToCompleteNumber()
 	{
-		numberOfBricksRequiredToComplete = bricks.Count(b => b?.BrickProperties.RequiredToComplete == true && (b?.BrickProperties.Hidden == false || b?.BrickProperties.RequiredToCompleteWhenHidden == true));
-		CheckIfLevelIsCompleted();
+		numberOfBricksRequiredToComplete = bricks.Count(b => ((b?.Hidden == false && b?.BrickProperties.RequiredToComplete == true) || (b?.Hidden == true && b?.BrickProperties.RequiredToCompleteWhenHidden == true)) && b?.SpaceDjoelBrick == false);
 	}
 
-	public void IncrementRequiredBricks() => numberOfBricksRequiredToComplete++;
+	public void IncrementRequiredBricks()
+	{
+		numberOfBricksRequiredToComplete++;
+		Debug.Log($"Bricks left: {numberOfBricksRequiredToComplete}");
+	}
 
 	public void IncreaseShooterLevel()
 	{
@@ -558,20 +632,18 @@ public class GameManager : MonoBehaviour
 
 	public void DescendBrickRows()
 	{
-		for (int i = LevelSet.ROWS - 1; i >= 0; i--)
+		for (int i = bricks.Length - 1; i >= 0; i--)
 		{
-			for (int j = LevelSet.COLUMNS - 1; j >= 0; j--)
+			Brick brick = bricks[i];
+			if (brick && brick.brickType.Properties.IsDescending)
 			{
-				Brick brick = bricks[j + (i * LevelSet.COLUMNS)];
-				if (brick && brick.brickType.Properties.IsDescending)
+				int yIndexInIteration = i / LevelSet.COLUMNS;
+				brick.TryMoveBlockDown(1);
+				if (brick.y != yIndexInIteration)
 				{
-					brick.TryMoveBlockDown(1);
-					if (brick.y != i)
-					{
-						int indexOfBrickBelow = j + ((i + 1) * LevelSet.COLUMNS);
-						bricks[indexOfBrickBelow] = bricks[j + (i * LevelSet.COLUMNS)];
-						bricks[j + (i * LevelSet.COLUMNS)] = null;
-					}
+					int indexOfBrickBelow = i + LevelSet.COLUMNS;
+					bricks[indexOfBrickBelow] = bricks[i];
+					bricks[i] = null;
 				}
 			}
 		}
@@ -600,10 +672,10 @@ public class GameManager : MonoBehaviour
 	public void GenerateBallsFromTeleporters(GameObject ball, int[] teleportExitIds, Vector2 collisionNormal)
 	{
 		Brick[] teleporterOutputs = GetTeleportOutputs(teleportExitIds);
-		foreach (Brick teleporterOutput in teleporterOutputs)
+		for (int i = 0; i < teleporterOutputs.Length && BallManager.Instance.BallNumber < BallManager.maxBallNumber; i++)
 		{
-			GameObject newBall = BallManager.Instance.CloneBall(ball.gameObject);
-			TeleportBrickBuster(teleporterOutput, newBall, collisionNormal);
+			GameObject newBall = BallManager.Instance.CreateNewBall();
+			TeleportBrickBuster(teleporterOutputs[i], newBall, collisionNormal);
 		}
 	}
 
@@ -614,7 +686,7 @@ public class GameManager : MonoBehaviour
 		SoundManager.Instance.PlaySfx("Teleport");
 		IBrickBuster brickBuster = brickBusterObject.GetComponent<IBrickBuster>();
 
-		if (brickBuster is Ball || brickBuster is SpaceDjoel)
+		if (brickBuster != null)
 		{
 			if (brickBuster is Ball)
 				brickBusterObject.GetComponent<Ball>().FinishThrust();
@@ -628,28 +700,53 @@ public class GameManager : MonoBehaviour
 			float brickBusterZ = brickBusterObject.transform.position.z;
 			float magnitude = brickBuster.CurrentVelocity.magnitude > 0 ? brickBuster.CurrentVelocity.magnitude : BallManager.minBallSpeed;
 			//Hit from bottom
-			if (collisionNormal == Vector2.down)
+			if (brickBuster is Ball || brickBuster is Bullet)
 			{
-				brickBusterObject.transform.position = new Vector3(teleportCollider.bounds.center.x, teleportCollider.bounds.min.y - ballCollider.bounds.extents.y - 0.03f, brickBusterZ);
-				brickBuster.CurrentVelocity = PhysicsHelper.GetAngledVelocity(270.0f + angle) * magnitude;
+				if (collisionNormal == Vector2.down)
+				{
+					brickBusterObject.transform.position = new Vector3(teleportCollider.bounds.center.x, teleportCollider.bounds.min.y - ballCollider.bounds.extents.y - 0.03f, brickBusterZ);
+					brickBuster.CurrentVelocity = PhysicsHelper.GetAngledVelocity(270.0f + angle) * magnitude;
+				}
+				//Hit from left
+				else if (collisionNormal == Vector2.left)
+				{
+					brickBusterObject.transform.position = new Vector3(teleportCollider.bounds.min.x - ballCollider.bounds.extents.x - 0.03f, teleportCollider.bounds.center.y, brickBusterZ);
+					brickBuster.CurrentVelocity = PhysicsHelper.GetAngledVelocity(0 - angle) * magnitude;
+				}
+				//Hit from top
+				else if (collisionNormal == Vector2.up)
+				{
+					brickBusterObject.transform.position = new Vector3(teleportCollider.bounds.center.x, teleportCollider.bounds.max.y + ballCollider.bounds.extents.y + 0.03f, brickBusterZ);
+					brickBuster.CurrentVelocity = PhysicsHelper.GetAngledVelocity(90.0f + angle) * magnitude;
+				}
+				//Hit from right
+				else if (collisionNormal == Vector2.right)
+				{
+					brickBusterObject.transform.position = new Vector3(teleportCollider.bounds.max.x + ballCollider.bounds.extents.x + 0.03f, teleportCollider.bounds.center.y, brickBusterZ);
+					brickBuster.CurrentVelocity = PhysicsHelper.GetAngledVelocity(180.0f - angle) * magnitude;
+				}
 			}
-			//Hit from left
-			else if (collisionNormal == Vector2.left)
+			else if (brickBuster is SpaceDjoel)
 			{
-				brickBusterObject.transform.position = new Vector3(teleportCollider.bounds.min.x - ballCollider.bounds.extents.x - 0.03f, teleportCollider.bounds.center.y, brickBusterZ);
-				brickBuster.CurrentVelocity = PhysicsHelper.GetAngledVelocity(0 - angle) * magnitude;
-			}
-			//Hit from top
-			else if (collisionNormal == Vector2.up)
-			{
-				brickBusterObject.transform.position = new Vector3(teleportCollider.bounds.center.x, teleportCollider.bounds.max.y + ballCollider.bounds.extents.y + 0.03f, brickBusterZ);
-				brickBuster.CurrentVelocity = PhysicsHelper.GetAngledVelocity(90.0f + angle) * magnitude;
-			}
-			//Hit from right
-			else if (collisionNormal == Vector2.right)
-			{
-				brickBusterObject.transform.position = new Vector3(teleportCollider.bounds.max.x + ballCollider.bounds.extents.x + 0.03f, teleportCollider.bounds.center.y, brickBusterZ);
-				brickBuster.CurrentVelocity = PhysicsHelper.GetAngledVelocity(180.0f - angle) * magnitude;
+				if (collisionNormal == Vector2.down)
+				{
+					brickBusterObject.transform.position = new Vector3(teleportCollider.bounds.center.x, teleportCollider.bounds.max.y + ballCollider.bounds.extents.y + 0.07f, brickBusterZ);
+				}
+				//Hit from left
+				else if (collisionNormal == Vector2.left)
+				{
+					brickBusterObject.transform.position = new Vector3(teleportCollider.bounds.max.x + ballCollider.bounds.extents.x + 0.07f, teleportCollider.bounds.center.y, brickBusterZ);
+				}
+				//Hit from top
+				else if (collisionNormal == Vector2.up)
+				{
+					brickBusterObject.transform.position = new Vector3(teleportCollider.bounds.center.x, teleportCollider.bounds.min.y - ballCollider.bounds.extents.y - 0.07f, brickBusterZ);
+				}
+				//Hit from right
+				else if (collisionNormal == Vector2.right)
+				{
+					brickBusterObject.transform.position = new Vector3(teleportCollider.bounds.min.x - ballCollider.bounds.extents.x - 0.07f, teleportCollider.bounds.center.y, brickBusterZ);
+				}
 			}
 		}
 	}
@@ -672,26 +769,79 @@ public class GameManager : MonoBehaviour
 		CoverSceneAndDoAction(CleanAfterLoseLife, "Lose Paddle");
 	}
 
-	private int GetBrickIndex(int x, int y) => x + (y * LevelSet.COLUMNS);
+	#region Multiplying
+	private struct TemporaryLayerData
+	{
+		public int Id { get; set; }
+		public bool Hidden { get; set; }
+		public bool SpaceDjoelBrick { get; set; }
+
+		public TemporaryLayerData(int id, bool hidden = false, bool spaceDjoelBrick = false)
+		{
+			Id = id;
+			Hidden = hidden;
+			SpaceDjoelBrick = spaceDjoelBrick;
+		}
+
+		/*public static bool operator ==(TemporaryLayerData temporaryLayerData, Brick brick)
+		{
+			return brick.BrickProperties.Id == temporaryLayerData.Id && brick.Hidden == temporaryLayerData.Hidden && brick.Hidden == temporaryLayerData.SpaceDjoelBrick;
+		}
+
+		public static bool operator !=(TemporaryLayerData temporaryLayerData, Brick brick)
+		{
+			return brick.BrickProperties.Id != temporaryLayerData.Id || brick.Hidden != temporaryLayerData.Hidden || brick.Hidden != temporaryLayerData.SpaceDjoelBrick;
+		}
+
+		public override bool Equals(object obj)
+		{
+			if (!(obj is TemporaryLayerData))
+			{
+				return false;
+			}
+
+			var data = (TemporaryLayerData)obj;
+			return Id == data.Id &&
+				   Hidden == data.Hidden &&
+				   SpaceDjoelBrick == data.SpaceDjoelBrick;
+		}
+
+		public override int GetHashCode()
+		{
+			var hashCode = 1008773611;
+			hashCode = hashCode * -1521134295 + Id.GetHashCode();
+			hashCode = hashCode * -1521134295 + Hidden.GetHashCode();
+			hashCode = hashCode * -1521134295 + SpaceDjoelBrick.GetHashCode();
+			return hashCode;
+		}*/
+	}
 
 	internal void MultiplyRegulars()
 	{
-		int[] tmpBrickLayer = bricks.Select(b => b?.BrickProperties.Id ?? 0).ToArray();
+		TemporaryLayerData[] tmpBrickLayer = bricks.Select(b =>
+		{
+			if (b && !b.Broken)
+				return new TemporaryLayerData(b.BrickProperties.Id, b.Hidden, b.SpaceDjoelBrick);
+			else
+				return new TemporaryLayerData(0);
+		}).ToArray();
 		for (int y = 0; y < LevelSet.ROWS; y++)
 		{
 			for (int x = 0; x < LevelSet.COLUMNS; x++)
 			{
+				bool hidden = bricks[GetBrickIndex(x, y)]?.Hidden ?? false;
+				bool spaceDjoelBrick = bricks[GetBrickIndex(x, y)]?.SpaceDjoelBrick ?? false;
 				BrickProperties brickProperties = bricks[GetBrickIndex(x, y)]?.BrickProperties;
 				if (brickProperties?.IsRegular == true)
 				{
 					if (y != 0 && bricks[GetBrickIndex(x, y - 1)]?.BrickProperties.CanBeOverridenByStandardMultiplier != false)
-						tmpBrickLayer[GetBrickIndex(x, y - 1)] = brickProperties.Id;
+						tmpBrickLayer[GetBrickIndex(x, y - 1)] = new TemporaryLayerData(brickProperties.Id, hidden, spaceDjoelBrick);
 					if (x != LevelSet.COLUMNS - 1 && bricks[GetBrickIndex(x + 1, y)]?.BrickProperties.CanBeOverridenByStandardMultiplier != false)
-						tmpBrickLayer[GetBrickIndex(x + 1, y)] = brickProperties.Id;
+						tmpBrickLayer[GetBrickIndex(x + 1, y)] = new TemporaryLayerData(brickProperties.Id, hidden, spaceDjoelBrick);
 					if (y != LevelSet.ROWS - 1 && bricks[GetBrickIndex(x, y + 1)]?.BrickProperties.CanBeOverridenByStandardMultiplier != false)
-						tmpBrickLayer[GetBrickIndex(x, y + 1)] = brickProperties.Id;
+						tmpBrickLayer[GetBrickIndex(x, y + 1)] = new TemporaryLayerData(brickProperties.Id, hidden, spaceDjoelBrick);
 					if (x != 0 && bricks[GetBrickIndex(x - 1, y)]?.BrickProperties.CanBeOverridenByStandardMultiplier != false)
-						tmpBrickLayer[GetBrickIndex(x - 1, y)] = brickProperties.Id;
+						tmpBrickLayer[GetBrickIndex(x - 1, y)] = new TemporaryLayerData(brickProperties.Id, hidden, spaceDjoelBrick);
 				}
 			}
 		}
@@ -700,23 +850,25 @@ public class GameManager : MonoBehaviour
 
 	internal void MultiplyExplosives()
 	{
-		int[] tmpBrickLayer = bricks.Select(b => b?.BrickProperties.Id ?? 0).ToArray();
+		TemporaryLayerData[] tmpBrickLayer = bricks.Select(b => new TemporaryLayerData() { Id = b?.BrickProperties.Id ?? 0, Hidden = b?.Hidden ?? false }).ToArray();
 		int explosives = 0;//Number of explosives needed to determine if additional explosives should not be added.
 		for (int y = 0; y < LevelSet.ROWS; y++)
 		{
 			for (int x = 0; x < LevelSet.COLUMNS; x++)
 			{
+				bool hidden = bricks[GetBrickIndex(x, y)]?.Hidden ?? false;
+				bool spaceDjoelBrick = bricks[GetBrickIndex(x, y)]?.SpaceDjoelBrick ?? false;
 				BrickProperties brickProperties = bricks[GetBrickIndex(x, y)]?.BrickProperties;
 				if (brickProperties?.IsExplosive == true && brickProperties.CanBeMultipliedByExplosiveMultiplier)
 				{
 					if (y != 0 && bricks[GetBrickIndex(x, y - 1)]?.BrickProperties.CanBeOverridenByExplosiveMultiplier != false)
-						tmpBrickLayer[GetBrickIndex(x, y - 1)] = brickProperties.Id;
+						tmpBrickLayer[GetBrickIndex(x, y - 1)] = new TemporaryLayerData(brickProperties.Id, hidden, spaceDjoelBrick);
 					if (x != LevelSet.COLUMNS - 1 && bricks[GetBrickIndex(x + 1, y)]?.BrickProperties.CanBeOverridenByExplosiveMultiplier != false)
-						tmpBrickLayer[GetBrickIndex(x + 1, y)] = brickProperties.Id;
+						tmpBrickLayer[GetBrickIndex(x + 1, y)] = new TemporaryLayerData(brickProperties.Id, hidden, spaceDjoelBrick);
 					if (y != LevelSet.ROWS - 1 && bricks[GetBrickIndex(x, y + 1)]?.BrickProperties.CanBeOverridenByExplosiveMultiplier != false)
-						tmpBrickLayer[GetBrickIndex(x, y + 1)] = brickProperties.Id;
+						tmpBrickLayer[GetBrickIndex(x, y + 1)] = new TemporaryLayerData(brickProperties.Id, hidden, spaceDjoelBrick);
 					if (x != 0 && bricks[GetBrickIndex(x - 1, y)]?.BrickProperties.CanBeOverridenByExplosiveMultiplier != false)
-						tmpBrickLayer[GetBrickIndex(x - 1, y)] = brickProperties.Id;
+						tmpBrickLayer[GetBrickIndex(x - 1, y)] = new TemporaryLayerData(brickProperties.Id, hidden, spaceDjoelBrick);
 					explosives++;
 				}
 			}
@@ -726,54 +878,62 @@ public class GameManager : MonoBehaviour
 		{
 			int x = UnityEngine.Random.Range(0, LevelSet.COLUMNS);
 			int y = UnityEngine.Random.Range(0, LevelSet.ROWS);
-			tmpBrickLayer[GetBrickIndex(x, y)] = RegularExplosiveId;
+			tmpBrickLayer[GetBrickIndex(x, y)] = new TemporaryLayerData(RegularExplosiveId);
 			if (y != 0 && bricks[GetBrickIndex(x, y - 1)]?.BrickProperties.CanBeOverridenByExplosiveMultiplier != false)
-				tmpBrickLayer[GetBrickIndex(x, y - 1)] = RegularExplosiveId;
+				tmpBrickLayer[GetBrickIndex(x, y - 1)] = new TemporaryLayerData(RegularExplosiveId);
 			if (x != LevelSet.COLUMNS - 1 && bricks[GetBrickIndex(x + 1, y)]?.BrickProperties.CanBeOverridenByExplosiveMultiplier != false)
-				tmpBrickLayer[GetBrickIndex(x + 1, y)] = RegularExplosiveId;
+				tmpBrickLayer[GetBrickIndex(x + 1, y)] = new TemporaryLayerData(RegularExplosiveId);
 			if (y != LevelSet.ROWS - 1 && bricks[GetBrickIndex(x, y + 1)]?.BrickProperties.CanBeOverridenByExplosiveMultiplier != false)
-				tmpBrickLayer[GetBrickIndex(x, y + 1)] = RegularExplosiveId;
+				tmpBrickLayer[GetBrickIndex(x, y + 1)] = new TemporaryLayerData(RegularExplosiveId);
 			if (x != 0 && bricks[GetBrickIndex(x - 1, y)]?.BrickProperties.CanBeOverridenByExplosiveMultiplier != false)
-				tmpBrickLayer[GetBrickIndex(x - 1, y)] = RegularExplosiveId;
+				tmpBrickLayer[GetBrickIndex(x - 1, y)] = new TemporaryLayerData(RegularExplosiveId);
 		}
 		RenderTemporaryBrickLayer(tmpBrickLayer);
 	}
 
-	private void RenderTemporaryBrickLayer(int[] tmpBrickLayer)
+	private void RenderTemporaryBrickLayer(TemporaryLayerData[] tmpBrickLayer)
 	{
+		bool change = false;
 		for (int y = 0; y < LevelSet.ROWS; y++)
 			for (int x = 0; x < LevelSet.COLUMNS; x++)
 			{
-				if (bricks[GetBrickIndex(x, y)] != null)
-					Destroy(bricks[GetBrickIndex(x, y)].gameObject);
-				float brickWidth = LevelSetBrickTypes[0].BrickUnityWidth;
-				float brickHeight = LevelSetBrickTypes[0].BrickUnityHeight;
-				if (tmpBrickLayer[GetBrickIndex(x, y)] != 0)
-					GenerateBrick(tmpBrickLayer[GetBrickIndex(x, y)], brickWidth, brickHeight, x, y);
+				int index = GetBrickIndex(x, y);
+				TemporaryLayerData tld = tmpBrickLayer[index];
+				//BONUS try to optimize it with condition similar to commented
+				if (tld.Id != 0)// && (tld.Id != bricks[index]?.BrickProperties.Id || tld.Hidden != bricks[index]?.Hidden || tld.SpaceDjoelBrick || bricks[index]?.Broken == true))
+				{
+					if (bricks[index])
+					{
+						//bricks[index].transform.position = new Vector3(bricks[index].transform.position.x, bricks[index].transform.position.y, 40);
+						bricks[index].StopAllCoroutines();
+						Destroy(bricks[index].gameObject);
+					}
+					GenerateBrick(tld.Id, x, y, tld.Hidden, tld.SpaceDjoelBrick);
+					change = true;
+				}
 			}
-		SetBricksRequiredToCompleteNumber();
+		if (change)
+			SetBricksRequiredToCompleteNumber();
 	}
-
-	internal void PerformSpecialHit()
-	{
-		SoundManager.Instance.PlaySfx("Bang");
-		ParticleManager.Instance.GenerateSpecialHitEffect(new Vector3(transform.position.x, transform.position.y, transform.position.z - 0.1f));
-	}
+	#endregion
 
 	internal void SaveGame()
 	{
-		new LevelPersistentData { Paddles = paddles, LevelNum = LevelIndex, CurrentScore = int.Parse(scoreText.text) }.Save(LoadedGameData.LevelSetFileName);
+		levelPersistentData.Paddles = paddles;
+		levelPersistentData.CurrentScore = int.Parse(scoreText.text);
+		levelPersistentData.LevelNum = LevelIndex;
+		levelPersistentData.Save();
 	}
 
 	internal void DeleteSave()
 	{
-		if (System.IO.File.Exists($"{CurrentLevelSet.LevelSetProperties.Name}.sav"))
-			System.IO.File.Delete($"{CurrentLevelSet.LevelSetProperties.Name}.sav");
+		if (System.IO.File.Exists($"Saves/{LoadedGameData.LevelSetFileName}.sav"))
+			System.IO.File.Delete($"Saves/{LoadedGameData.LevelSetFileName}.sav");
 	}
 
 	IEnumerator CleanAfterLoseLife()
 	{
-		yield return new WaitUntil(() => shutterAnimator.GetComponent<ShutterAnimationManager>().Covered);
+		yield return new WaitUntil(() => shutterAnimator.Covered);
 		CleanLevel();
 		if (paddles >= 0)
 		{
@@ -785,7 +945,7 @@ public class GameManager : MonoBehaviour
 			if (LoadedGameData.TestMode == TestMode.None)
 			{
 				DeleteSave();
-				GoToLeaderboard();
+				GoToLeaderboard(won: false);
 			}
 			else
 				Application.Quit();
@@ -807,6 +967,7 @@ public class GameManager : MonoBehaviour
 				Application.Quit();
 			ResetOnNextLevel();
 			InitLevel();
+			levelCompleted = false;
 			shutterAnimator.Uncover();
 		}
 		else
@@ -815,18 +976,19 @@ public class GameManager : MonoBehaviour
 			if (LoadedGameData.TestMode == TestMode.None)
 			{
 				DeleteSave();
-				GoToLeaderboard();
+				GoToLeaderboard(won: true);
 			}
 			else
 				Application.Quit();
 		}
 	}
 
-	private void GoToLeaderboard()
+	private void GoToLeaderboard(bool won)
 	{
-		EndGameData.LastLevel = LeaderboardManager.WonPlaceholder;
+		EndGameData.HighScoreChange = true;
+		EndGameData.LastLevel = LevelIndex;
 		EndGameData.Score = int.Parse(scoreText.text);
-		LeaderboardManager.addNewRecord = true;
+		EndGameData.Won = won;
 		SceneManager.LoadScene("Leaderboard");
 	}
 
