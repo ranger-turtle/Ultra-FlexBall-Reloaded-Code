@@ -1,6 +1,5 @@
 ﻿using LevelSetData;
 using System.Collections;
-using System.Linq;
 using UnityEngine;
 
 [RequireComponent(typeof(BoxCollider2D))]
@@ -25,6 +24,7 @@ public class Brick : MonoBehaviour
 	internal BrickProperties BrickProperties => brickType.Properties;
 
 	private IEnumerator CurrentBrickAnimationCoroutine;
+	private IEnumerator CurrentMoveCoroutine;
 
 	private ParticleSystem chimneyParticles;
 
@@ -40,6 +40,7 @@ public class Brick : MonoBehaviour
 		height = boxCollider2D.size.y;
 		PrepareParticles();
 		PrepareBrickAnimation();
+		LaunchIfMoving();
 	}
 
 	internal void TryHide()
@@ -77,16 +78,16 @@ public class Brick : MonoBehaviour
 		}
 		PrepareParticles();
 		PrepareBrickAnimation();
+		LaunchIfMoving();
 	}
 
 	internal void TryMoveBlockDown(int yMove)
 	{
-		if (y < LevelSet.ROWS - 1)
+		if (y < LevelSet.ROWS - 1 && !Broken && BrickProperties.IsDescending)
 		{
-
 			Brick hitBrick = GameManager.Instance.GetBrickByCoordinates(x, y + yMove);
 
-			if (hitBrick)
+			if (hitBrick && !hitBrick.Broken)
 			{
 				if (hitBrick.BrickProperties.DescendingPressTurnId != 0)
 					hitBrick.ChangeBrickType(hitBrick.BrickProperties.DescendingPressTurnId);
@@ -94,15 +95,16 @@ public class Brick : MonoBehaviour
 			}
 			else
 			{
+				if (hitBrick?.Broken == true)
+					GameManager.Instance.DisposeBrick(hitBrick);//to prevent disposing brick which has been descended
 				Vector3 move = new Vector3(0, height * yMove, 0);
 				transform.position -= move;
 				if (chimneyParticles)
 					chimneyParticles.transform.position -= move;
 				y = Mathf.Min(y + yMove, LevelSet.ROWS - 1);
-				if (y == LevelSet.ROWS - 1)
+				if (y == LevelSet.ROWS - 1 && BrickProperties.DescendingBottomTurnId != 0)
 				{
-					if (BrickProperties.DescendingBottomTurnId != 0)
-						ChangeBrickType(BrickProperties.DescendingBottomTurnId);
+					ChangeBrickType(BrickProperties.DescendingBottomTurnId);
 					//Debug.Log($"x: {x}, y: {y}: At the bottom");
 				}
 				//Debug.Log($"x: {x}, y: {y}: Move");
@@ -135,14 +137,87 @@ public class Brick : MonoBehaviour
 		}
 	}
 
-	private void MakeExplosion(int explosionRadius)
+	private void MakeExplosion(int explosionRadius, GameObject brickBusterObject = null)
 	{
 		Vector2 spriteBounds = boxCollider2D.size;
 		Vector3 explosionPosition = new Vector3(gameObject.transform.position.x + spriteBounds.x / 2, gameObject.transform.position.y - spriteBounds.y / 2, -4);
+		if (brickBusterObject)
+			soundManager.PlaySfx("Bang");
 		GameManager.Instance.MakeExplosion(explosionRadius, explosionPosition, spriteBounds);
 	}
 
 	private void PlayHitSound() => soundManager.PlaySfx(brickType.hitAudio);
+
+	#region Brick Move
+	private void LaunchIfMoving()
+	{
+		if (BrickProperties.IsMoving)
+		{
+			StartCoroutine(CurrentMoveCoroutine = MoveBrick());
+		}
+	}
+
+	private IEnumerator MoveBrick()
+	{
+		int step = 1;
+		Vector3 move = Vector3.zero;
+		while (BrickProperties.IsMoving)
+		{
+			switch (BrickProperties.MovingBrickType)
+			{
+				case MovingBrickType.Horizontal:
+					Brick brick = GameManager.Instance.GetBrickByCoordinates(x + step, y);
+					if (brick || (x == Mathf.Max(BrickProperties.BoundOne, 0) && step == -1) || (x == Mathf.Min(BrickProperties.BoundTwo, LevelSet.COLUMNS - 1) && step == 1))
+						step *= -1;
+					move = new Vector3(BrickType.BrickUnityWidth * step, 0, 0);
+					transform.position += move;
+					int futureX = x + step;
+					GameManager.Instance.SwapBricks(x, y, futureX, y);
+					break;
+				case MovingBrickType.Vertical:
+					brick = GameManager.Instance.GetBrickByCoordinates(x, y + step);
+					if (brick || (y == Mathf.Max(BrickProperties.BoundOne, 0) && step == -1) || (y == Mathf.Min(BrickProperties.BoundTwo, LevelSet.ROWS - 1) && step == 1))
+						step *= -1;
+					move = new Vector3(0, BrickType.BrickUnityWidth * step, 0);
+					transform.position += move;
+					int futureY = y + step;
+					GameManager.Instance.SwapBricks(x, y, x, futureY);
+					break;
+			}
+			yield return new WaitForSeconds(BrickProperties.BrickMoveInterval);
+		}
+	}
+
+	private void StopBrick()
+	{
+		if (CurrentMoveCoroutine != null)
+		{
+			StopCoroutine(CurrentMoveCoroutine);
+			CurrentMoveCoroutine = null;
+		}
+	}
+	#endregion
+
+	private bool FirstInSequence()
+	{
+		Brick brickToCheck = null;
+		switch (BrickProperties.SequenceDirection)
+		{
+			case Direction.Up when y + 1 >= 0:
+				brickToCheck = GameManager.Instance.GetBrickByCoordinates(x, y + 1);
+				break;
+			case Direction.Down when y - 1 < LevelSet.ROWS:
+				brickToCheck = GameManager.Instance.GetBrickByCoordinates(x, y - 1);
+				break;
+			case Direction.Left when x + 1 >= 0:
+				brickToCheck = GameManager.Instance.GetBrickByCoordinates(x + 1, y);
+				break;
+			case Direction.Right when x - 1 < LevelSet.COLUMNS:
+				brickToCheck = GameManager.Instance.GetBrickByCoordinates(x - 1, y);
+				break;
+		}
+		return !brickToCheck || brickToCheck.BrickProperties.Id != this.BrickProperties.Id;
+	}
 
 	//private void OnCollisionEnter2D(Collision2D collision)
 	private void Collision(GameObject brickBusterObject)
@@ -154,7 +229,6 @@ public class Brick : MonoBehaviour
 		IBrickBuster brickBuster = brickBusterObject.GetComponent<IBrickBuster>();
 		if (isBrickBusterABall || isBrickBusterABullet || isSpaceDjoel)
 		{
-			PlayHitSound();
 			TryIncreasePowerUpField(brickBusterObject);
 			if (BrickProperties.IsTeleporter)
 			{
@@ -164,6 +238,9 @@ public class Brick : MonoBehaviour
 			}
 			if (!brickBuster.Teleport)//if brickBuster is not teleported
 			{
+				if (BrickProperties.AlwaysSpecialHit)
+					PerformSpecialHit();
+				PlayHitSound();
 				bool previouslyHidden = false;
 				if (Hidden)
 				{
@@ -174,12 +251,18 @@ public class Brick : MonoBehaviour
 				{
 					if (GameManager.Instance.PenetratingBall && !BrickProperties.PenetrationResistant)
 						Break(BrickProperties.Points / 2, brickBusterObject, true);
-					else if (!BrickProperties.NormalResistant && !previouslyHidden)
+					else if (!BrickProperties.NormalResistant && !previouslyHidden && FirstInSequence())
 						Break(BrickProperties.Points, brickBusterObject);
 					else if (brickType.HasHitSprite)
 						StartCoroutine(DisplayHitSprite());
+
 					if (BrickProperties.FuseDirection != Direction.None && TriggersOnHit(BrickProperties.FuseTrigger))
 						StartCoroutine(PrepareForFuseBurn());
+					if (BrickProperties.IsExplosive && TriggersOnHit(BrickProperties.ExplosionTrigger))
+						MakeExplosion(BrickProperties.ExplosionRadius, brickBusterObject);
+					if (BrickProperties.IsDetonator && TriggersOnHit(BrickProperties.DetonationTrigger))
+						GameManager.Instance.DetonateOrChangeBrick(BrickProperties.OldBrickTypeId, BrickProperties.NewBrickTypeId, BrickProperties.DetonationRange);
+
 					if (GameManager.Instance.ExplosiveBall)
 					{
 						MakeExplosion(1);
@@ -191,8 +274,6 @@ public class Brick : MonoBehaviour
 				else
 					Break(BrickProperties.Points, brickBusterObject, true);
 			}
-			if (BrickProperties.AlwaysSpecialHit)
-				PerformSpecialHit();
 			ParticleManager.Instance.GenerateBrickHitEffect(new Vector3(brickBuster.LastHitPoint.x, brickBuster.LastHitPoint.y, transform.position.z - 0.1f), brickBuster.LastHitNormal);
 			performSpecialHit = true;
 		}
@@ -202,15 +283,15 @@ public class Brick : MonoBehaviour
 	{
 		if (!Broken)
 		{
+			StopBrick();
+			DestroyParticles();
 			if (BrickProperties.NextBrickTypeId == 0 || force)
 			{
 				Reveal(false);
 				DecrementRequiredBrickNumberIfNeeded();
 				if (BrickProperties.IsExplosive && TriggersOnDestroy(BrickProperties.ExplosionTrigger))
 				{
-					if (brickBusterObject)
-						soundManager.PlaySfx("Bang");
-					MakeExplosion(BrickProperties.ExplosionRadius);
+					MakeExplosion(BrickProperties.ExplosionRadius, brickBusterObject);
 				}
 				if (BrickProperties.IsDetonator && TriggersOnDestroy(BrickProperties.DetonationTrigger))
 					GameManager.Instance.DetonateOrChangeBrick(BrickProperties.OldBrickTypeId, BrickProperties.NewBrickTypeId, BrickProperties.DetonationRange);
@@ -228,10 +309,11 @@ public class Brick : MonoBehaviour
 					currentAnimationSpriteIndex = 0;
 					StartCoroutine(IcyFadingCoroutine());
 				}
-				DestroyParticles();
 			}
 			else
 			{
+				/*if (brickType.HasHitSprite)
+					StartCoroutine(DisplayHitSprite());*/
 				ChangeToNextBrick();
 				PrepareBrickAnimation();
 			}
@@ -373,11 +455,14 @@ public class Brick : MonoBehaviour
 
 	internal void FadeBrickAway()
 	{
-		DecrementRequiredBrickNumberIfNeeded();
-		DestroyParticles();
-		GetComponent<Collider2D>().enabled = false;
-		Broken = true;
-		StartCoroutine(FadingCoroutine());
+		if (!Broken)
+		{
+			DecrementRequiredBrickNumberIfNeeded();
+			DestroyParticles();
+			GetComponent<Collider2D>().enabled = false;
+			Broken = true;
+			StartCoroutine(FadingCoroutine());
+		}
 	}
 
 	private IEnumerator DisplayHitSprite()
@@ -428,7 +513,9 @@ public class Brick : MonoBehaviour
 
 			yield return null;
 		}
-		GameManager.Instance.DisposeBrick(this);
+	//below lines can be called even when this object is destroyed
+		if (gameObject)
+			GameManager.Instance.DisposeBrick(this);
 	}
 
 	//Coroutine cannot be directly started from other class because stopAllCoroutines won't work properly
@@ -437,10 +524,10 @@ public class Brick : MonoBehaviour
 	//fading coroutine used when Space Djoel hits the brick
 	private IEnumerator IcyFadingCoroutine()
 	{
+		SpaceDjoelBrick = true;
 		brickType = GameManager.Instance.SpaceDjoelBrickType;
 		SpriteRenderer spriteRenderer = GetComponent<SpriteRenderer>();
 		spriteRenderer.sprite = brickType.FirstSprite;
-		SpaceDjoelBrick = true;
 		while (spriteRenderer.color.a > 0)
 		{
 			Color color = spriteRenderer.color;

@@ -37,16 +37,11 @@ public class LevelSetListManager : MonoBehaviour
 	//TODO [FlexEd] Optimize file loading setting number of levels to beginning
 	private void Start()
 	{
+		MusicManager.Instance.SwitchToTitle();
 		EndGameData.HighScoreChange = false;
 
-		List<LevelSetData.LevelSet> levelSets = new List<LevelSetData.LevelSet>();
 		List<string> correctLevelSetFileNames = new List<string>();
-		LoadLevelSets(levelSets, correctLevelSetFileNames);
-		LevelSetTemporaryData[] levelSetTemporaryData = levelSets.Select(ls => new LevelSetTemporaryData
-		{
-			levelSetName = ls.LevelSetProperties.Name,
-			totalLevelNumber = ls.Levels.Count,
-		}).ToArray();
+		LevelSetTemporaryData[] levelSetTemporaryData = LoadLevelSetTemporaryData(correctLevelSetFileNames);
 		for (int i = 0; i < levelSetTemporaryData.Length; i++)
 		{
 			GameObject levelSetListRow = Instantiate(levelSetListRowPrefab, gameObject.transform);
@@ -63,7 +58,7 @@ public class LevelSetListManager : MonoBehaviour
 			levelSetNameCol.GetComponent<Text>().text = levelSetTemporaryData[i].levelSetName;
 			levelSetNameButton.LevelSetName = levelSetTemporaryData[i].levelSetName;
 			levelSetNameButton.LevelSetFileName = correctLevelSetFileNames[i];
-			levelSetNameButton.FirstLevel = levelIndex > 0 && !levelSetCompleted ? false : true;
+			levelSetNameButton.FirstLevel = levelIndex > 0 ? false : true;
 			levelSetListRow.transform.Find("LastLevelCol").GetComponent<Text>().text = $"{levelIndex + 1}";
 			levelSetListRow.transform.Find("TotalLevelsCol").GetComponent<Text>().text = levelSetTemporaryData[i].totalLevelNumber.ToString();
 			if (levelSetCompleted)
@@ -71,8 +66,9 @@ public class LevelSetListManager : MonoBehaviour
 		}
 	}
 
-	private void LoadLevelSets(List<LevelSetData.LevelSet> levelSets, List<string> correctLevelSetFileNames)
+	private LevelSetTemporaryData[] LoadLevelSetTemporaryData(List<string> correctLevelSetFileNames)
 	{
+		List<LevelSetTemporaryData> levelSetTemporaryData = new List<LevelSetTemporaryData>();
 		List<string> levelSetFileNames = Directory.GetFiles("Level sets", "*.nlev", SearchOption.TopDirectoryOnly)
 			.Select(lsn => Path.GetFileNameWithoutExtension(lsn)).ToList();
 		List<string> corruptLevelSetList = new List<string>();
@@ -80,9 +76,9 @@ public class LevelSetListManager : MonoBehaviour
 		{
 			try
 			{
-				LevelSetData.LevelSet levelSet = FileImporter.LoadLevelSet("Level sets", lsn);
+				LevelSetTemporaryData levelSet = LoadLevelSetNumber($"Level sets/{lsn}.nlev");
 				correctLevelSetFileNames.Add(lsn);
-				levelSets.Add(levelSet);
+				levelSetTemporaryData.Add(levelSet);
 			}
 			catch (IOException)
 			{
@@ -93,6 +89,40 @@ public class LevelSetListManager : MonoBehaviour
 		{
 			Logger.SaveGameErrorLog("Level sets", corruptLevelSetList);
 			errorMessage.Show("Some level sets are corrupt. See more details in log in level set folder.");
+		}
+		return levelSetTemporaryData.ToArray();
+	}
+
+	private LevelSetTemporaryData LoadLevelSetNumber(string levelSetFilePath)
+	{
+		using (FileStream fileStream = File.OpenRead(levelSetFilePath))
+		{
+			using (BinaryReader levelSetReader = new BinaryReader(fileStream))
+			{
+				string fileSignature = levelSetReader.ReadString();
+				if (fileSignature == "nuLev")
+				{
+					string levelSetName = levelSetReader.ReadString();
+					levelSetReader.ReadString();
+					levelSetReader.ReadString();
+					//BONUS write internal function after upgrade to next C# version
+					int customSoundInLevelSetSoundLibraryCount = levelSetReader.ReadInt32();
+					for (int i = 0; i < customSoundInLevelSetSoundLibraryCount; i++)
+					{
+						levelSetReader.ReadString();
+						levelSetReader.ReadString();
+					}
+					int levelNumber = levelSetReader.ReadInt32();
+					return new LevelSetTemporaryData()
+					{
+						levelSetName = levelSetName,
+						totalLevelNumber = levelNumber
+					};
+				}
+				else
+					throw new IOException("Invalid Ultra FlexBall Reloaded level set file loaded.");
+			}
+
 		}
 	}
 

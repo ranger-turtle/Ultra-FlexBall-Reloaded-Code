@@ -107,6 +107,7 @@ MonoBehaviour:
   coverMaskTransform: {fileID: 2236780946008194974}
   coverTransform: {fileID: 6178492901906751608}
   canvasTransform: {fileID: 0}
+  loadingText: {fileID: 0}
 --- !u!1 &6439408393241309858
 GameObject:
   m_ObjectHideFlags: 0

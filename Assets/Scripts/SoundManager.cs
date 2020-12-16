@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using UnityEngine;
 
 [RequireComponent(typeof(AudioSource))]
@@ -99,6 +95,7 @@ public class SoundManager : MonoBehaviour
 	{
 		try
 		{
+			while (loadedFiles[soundName].loadState != AudioDataLoadState.Loaded) ;
 			return loadedFiles[soundName];
 		}
 		catch (KeyNotFoundException)
@@ -110,7 +107,10 @@ public class SoundManager : MonoBehaviour
 	public void PlaySfx(string audioKey)
 	{
 		if (audioKey != null && levelSoundLibrary[audioKey] != null)
+		{
+			while (levelSoundLibrary[audioKey].loadState == AudioDataLoadState.Loading) ;
 			audioSource.PlayOneShot(levelSoundLibrary[audioKey]);
+		}
 	}
 
 	public void PlaySfx(AudioClip audioClip)

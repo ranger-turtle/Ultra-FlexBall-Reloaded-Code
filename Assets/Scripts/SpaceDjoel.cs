@@ -93,7 +93,7 @@ public class SpaceDjoel : MonoBehaviour, IBrickBuster
 	private float GetAngleInFullTurnRange(Vector2 vector)
 	{
 		float rawAngle = Vector2.Angle(Vector2.up, vector);
-		Debug.Log($"Raw angle: {rawAngle}, vector.x: {vector.x}");
+		//Debug.Log($"Raw angle: {rawAngle}, vector.x: {vector.x}");
 		return vector.x >= 0 ? rawAngle : 360 - rawAngle;
 	}
 
@@ -144,7 +144,7 @@ public class SpaceDjoel : MonoBehaviour, IBrickBuster
 					if (firstRaycast.normal == Vector2.up)
 					{
 						float velocityX = LastFrameVelocity.x != 0 ? CurrentVelocity.x : CurrentVelocity.x + 0.1f * new int[] { -1, 1 }[Random.Range(0, 2)];
-						CurrentVelocity = new Vector2(velocityX, Mathf.Max(-CurrentVelocity.y / 2, 0.04f));
+						CurrentVelocity = new Vector2(velocityX, Mathf.Max(-CurrentVelocity.y * 0.75f, 0.04f));
 					}
 					else
 						CurrentVelocity = PhysicsHelper.GenerateReflectedVelocity(LastFrameVelocity, firstRaycast.normal);
@@ -166,7 +166,7 @@ public class SpaceDjoel : MonoBehaviour, IBrickBuster
 		{
 			rawAnimationIndex = newIndex;
 			firstFrameBound = rawAnimationIndex - rotateFrames / 2;
-			Debug.Log($"Angle: {GetAngleInFullTurnRange(CurrentVelocity)}");
+			//Debug.Log($"Angle: {GetAngleInFullTurnRange(CurrentVelocity)}");
 		}
 		animationIndex = rawAnimationIndex % 40;
 		if (animationIndex < 0)

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -7,78 +6,51 @@ using UnityEngine.UI;
 
 public class HUDManager : MonoBehaviour
 {
-	private Dictionary<string, Sprite> displaySprites;
+	private Dictionary<string, GameObject> displayPrefabs;
 	public bool Paused { get; private set; }
 
 	[SerializeField]
-#pragma warning disable CS0649 // Field 'HUDManager.singlePowerUpDisplayPrefab' is never assigned to, and will always have its default value null
-	private GameObject singlePowerUpDisplayPrefab;
-#pragma warning restore CS0649 // Field 'HUDManager.singlePowerUpDisplayPrefab' is never assigned to, and will always have its default value null
+	private GameObject bigBallDisplayPrefab;
 	[SerializeField]
-#pragma warning disable CS0649 // Field 'HUDManager.levelPowerUpDisplayPrefab' is never assigned to, and will always have its default value null
-	private GameObject levelPowerUpDisplayPrefab;
-#pragma warning restore CS0649 // Field 'HUDManager.levelPowerUpDisplayPrefab' is never assigned to, and will always have its default value null
+	private GameObject magnetDisplayPrefab;
+	[SerializeField]
+	private GameObject explosiveBallDisplayPrefab;
+	[SerializeField]
+	private GameObject penetratingBallDisplayPrefab;
+	[SerializeField]
+	private GameObject descendingBricksDisplayPrefab;
+	[SerializeField]
+	private GameObject shooterDisplayPrefab;
+	[SerializeField]
+	private GameObject protectiveBarrierDisplayPrefab;
+	[SerializeField]
+	private GameObject megaMissileDisplayPrefab;
 
 	[SerializeField]
-#pragma warning disable CS0649 // Field 'HUDManager.bigBallDisplaySprite' is never assigned to, and will always have its default value null
 	private Sprite bigBallDisplaySprite;
-#pragma warning restore CS0649 // Field 'HUDManager.bigBallDisplaySprite' is never assigned to, and will always have its default value null
 	[SerializeField]
-#pragma warning disable CS0649 // Field 'HUDManager.megaBallDisplaySprite' is never assigned to, and will always have its default value null
 	private Sprite megaBallDisplaySprite;
-#pragma warning restore CS0649 // Field 'HUDManager.megaBallDisplaySprite' is never assigned to, and will always have its default value null
-	[SerializeField]
-#pragma warning disable CS0649 // Field 'HUDManager.magnetDisplaySprite' is never assigned to, and will always have its default value null
-	private Sprite magnetDisplaySprite;
-#pragma warning restore CS0649 // Field 'HUDManager.magnetDisplaySprite' is never assigned to, and will always have its default value null
-	[SerializeField]
-#pragma warning disable CS0649 // Field 'HUDManager.explosiveBallDisplaySprite' is never assigned to, and will always have its default value null
-	private Sprite explosiveBallDisplaySprite;
-#pragma warning restore CS0649 // Field 'HUDManager.explosiveBallDisplaySprite' is never assigned to, and will always have its default value null
-	[SerializeField]
-#pragma warning disable CS0649 // Field 'HUDManager.penetratingBallDisplaySprite' is never assigned to, and will always have its default value null
-	private Sprite penetratingBallDisplaySprite;
-#pragma warning restore CS0649 // Field 'HUDManager.penetratingBallDisplaySprite' is never assigned to, and will always have its default value null
-	[SerializeField]
-#pragma warning disable CS0649 // Field 'HUDManager.descendingBricksDisplaySprite' is never assigned to, and will always have its default value null
-	private Sprite descendingBricksDisplaySprite;
-#pragma warning restore CS0649 // Field 'HUDManager.descendingBricksDisplaySprite' is never assigned to, and will always have its default value null
-	[SerializeField]
-#pragma warning disable CS0649 // Field 'HUDManager.shooterDisplaySprite' is never assigned to, and will always have its default value null
-	private Sprite shooterDisplaySprite;
-#pragma warning restore CS0649 // Field 'HUDManager.shooterDisplaySprite' is never assigned to, and will always have its default value null
-	[SerializeField]
-#pragma warning disable CS0649 // Field 'HUDManager.protectiveBarrierDisplaySprite' is never assigned to, and will always have its default value null
-	private Sprite protectiveBarrierDisplaySprite;
-#pragma warning restore CS0649 // Field 'HUDManager.protectiveBarrierDisplaySprite' is never assigned to, and will always have its default value null
-	[SerializeField]
-#pragma warning disable CS0649 // Field 'HUDManager.megaMissileDisplaySprite' is never assigned to, and will always have its default value null
-	private Sprite megaMissileDisplaySprite;
-#pragma warning restore CS0649 // Field 'HUDManager.megaMissileDisplaySprite' is never assigned to, and will always have its default value null
 
 	[SerializeField]
-#pragma warning disable CS0649 // Field 'HUDManager.LevelNameDisplay' is never assigned to, and will always have its default value null
 	private GameObject LevelNameDisplay;
-#pragma warning restore CS0649 // Field 'HUDManager.LevelNameDisplay' is never assigned to, and will always have its default value null
 	[SerializeField]
-#pragma warning disable CS0649 // Field 'HUDManager.PAUSEDisplay' is never assigned to, and will always have its default value null
 	private GameObject PAUSEDisplay;
 #pragma warning restore CS0649 // Field 'HUDManager.PAUSEDisplay' is never assigned to, and will always have its default value null
 
 	private void Start()
 	{
-		displaySprites = new Dictionary<string, Sprite>
+		displayPrefabs = new Dictionary<string, GameObject>
 		{
 			//{"BigBallDisplay", bigBallDisplaySprite },
 			//{"MegaBallDisplay", megaBallDisplaySprite },
-			{"BallSizeDisplay", bigBallDisplaySprite },
-			{"MagnetDisplay", magnetDisplaySprite },
-			{"ExplosiveBallDisplay", explosiveBallDisplaySprite },
-			{"PenetratingBallDisplay", penetratingBallDisplaySprite },
-			{"DescendingBricksDisplay", descendingBricksDisplaySprite },
-			{"ShooterDisplay", shooterDisplaySprite },
-			{"ProtectiveBarrierDisplay", protectiveBarrierDisplaySprite  },
-			{"MegaMissileDisplay", megaMissileDisplaySprite }
+			{"BallSizeDisplay", bigBallDisplayPrefab },
+			{"MagnetDisplay", magnetDisplayPrefab },
+			{"ExplosiveBallDisplay", explosiveBallDisplayPrefab },
+			{"PenetratingBallDisplay", penetratingBallDisplayPrefab },
+			{"DescendingBricksDisplay", descendingBricksDisplayPrefab },
+			{"ShooterDisplay", shooterDisplayPrefab },
+			{"ProtectiveBarrierDisplay", protectiveBarrierDisplayPrefab  },
+			{"MegaMissileDisplay", megaMissileDisplayPrefab }
 		};
 	}
 
@@ -86,8 +58,7 @@ public class HUDManager : MonoBehaviour
 	{
 		if (!transform.Find(displayKey))
 		{
-			GameObject HUDDisplay = Instantiate(singlePowerUpDisplayPrefab, gameObject.transform);
-			HUDDisplay.transform.Find("Icon").GetComponent<Image>().sprite = displaySprites[displayKey];
+			GameObject HUDDisplay = Instantiate(displayPrefabs[displayKey], gameObject.transform);
 			HUDDisplay.name = displayKey;
 		}
 	}
@@ -97,11 +68,12 @@ public class HUDManager : MonoBehaviour
 		GameObject HUDDisplay = transform.Find(displayKey)?.gameObject;
 		if (!HUDDisplay)
 		{
-			HUDDisplay = Instantiate(levelPowerUpDisplayPrefab, gameObject.transform);
-			HUDDisplay.transform.Find("Icon").GetComponent<Image>().sprite = displaySprites[displayKey];
+			HUDDisplay = Instantiate(displayPrefabs[displayKey], gameObject.transform);
 			HUDDisplay.name = displayKey;
 		}
-		HUDDisplay.transform.Find("Number").GetComponent<Text>().text = value.ToString();
+		Transform numberLabel = HUDDisplay.transform.Find("Number");
+		if (numberLabel)
+			numberLabel.GetComponent<Text>().text = value.ToString();
 	}
 
 	public void AddOrUpdateBallSizeDisplay(string displayKey, BallSize ballSize)
@@ -109,7 +81,7 @@ public class HUDManager : MonoBehaviour
 		GameObject HUDDisplay = transform.Find(displayKey)?.gameObject;
 		if (!transform.Find(displayKey) && !HUDDisplay)
 		{
-			HUDDisplay = Instantiate(singlePowerUpDisplayPrefab, gameObject.transform);
+			HUDDisplay = Instantiate(bigBallDisplayPrefab, gameObject.transform);
 			HUDDisplay.name = displayKey;
 		}
 		switch (ballSize)

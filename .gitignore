@@ -276,3 +276,5 @@ __pycache__/
 /Library
 /Logs
 /High scores
+*.txt
+*.mp3

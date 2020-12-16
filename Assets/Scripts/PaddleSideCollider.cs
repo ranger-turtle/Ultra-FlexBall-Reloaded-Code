@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class PaddleSideCollider : MonoBehaviour
 {
@@ -36,7 +34,7 @@ public class PaddleSideCollider : MonoBehaviour
 			{
 				//Debug.Break();
 				Ball ball = brickBuster as Ball;
-				Debug.Log($"New velocity: x: {ball.CurrentVelocity.x}, y: {ball.CurrentVelocity.y}");
+				//Debug.Log($"New velocity: x: {ball.CurrentVelocity.x}, y: {ball.CurrentVelocity.y}");
 				if (ball.BallSize != (int)GameManager.Instance.BallSize)
 					soundManager.PlaySfx("Ball Size Change");
 				ball.UpdateSize();

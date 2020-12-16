@@ -32,9 +32,9 @@ public class BallManager : MonoBehaviour
 
 	private Ball initialBall;
 
-	internal const float minBallSpeed = 0.12f;
+	internal const float minBallSpeed = 0.122f;
 	internal const float maxBallSpeed = 0.27f;
-	internal const float acceleration = 1.005f;
+	internal const float acceleration = 1.009f;
 
 	private SoundManager soundManager;
 
@@ -53,12 +53,17 @@ public class BallManager : MonoBehaviour
 		Vector3 startingPosition = new Vector3(paddlePosition.x, StuckY, ballPrefab.transform.position.z);
 		initialBall = Instantiate(ballPrefab, startingPosition, Quaternion.identity);
 		initialBall.StickToPaddle(Vector2.up * minBallSpeed, 0);
+		if (GameManager.Instance.ExplosiveBall)
+			ParticleManager.Instance.GenerateExplosiveBallParticles(initialBall.gameObject, GameManager.Instance.BallSize);
+		if (GameManager.Instance.PenetratingBall)
+			ParticleManager.Instance.GeneratePenetratingBallParticles(initialBall.gameObject, GameManager.Instance.BallSize);
+		initialBall.UpdateSize();
 		balls = new List<GameObject>() { initialBall.gameObject };
 	}
 
 	public void Remove(GameObject ballObj)
 	{
-		Destroy(ballObj);
+		Destroy(ballObj, 0.5f);
 		balls.Remove(ballObj);
 		GameManager.Instance.CheckForLosePaddle();
 	}
@@ -110,16 +115,21 @@ public class BallManager : MonoBehaviour
 			for (int i = 0; i < balls.Count && balls.Count < maxBallNumber; i++)
 			{
 				GameObject newBallObject = CloneBall(balls[i], false);
-				Vector3 originalBallVelocity = balls[i].GetComponent<Ball>().CurrentVelocity;
-				Vector3 newBallVelocity = new Vector3(originalBallVelocity.x, originalBallVelocity.y);
-				if (originalBallVelocity.x != 0 && originalBallVelocity.y != 0)
+				if (!balls[i].GetComponent<Ball>().StuckToPaddle)
 				{
-					if (Mathf.Abs(originalBallVelocity.x) > Mathf.Abs(originalBallVelocity.y))
-						newBallVelocity.y = -newBallVelocity.y;
-					else
-						newBallVelocity.x = -newBallVelocity.x;
+					Vector3 originalBallVelocity = balls[i].GetComponent<Ball>().CurrentVelocity;
+					Vector3 newBallVelocity = new Vector3(originalBallVelocity.x, originalBallVelocity.y);
+					if (originalBallVelocity.x != 0 && originalBallVelocity.y != 0)
+					{
+						if (Mathf.Abs(originalBallVelocity.x) > Mathf.Abs(originalBallVelocity.y))
+							newBallVelocity.y = -newBallVelocity.y;
+						else
+							newBallVelocity.x = -newBallVelocity.x;
+					}
+					newBallObject.GetComponent<Ball>().CurrentVelocity = newBallVelocity;
 				}
-				newBallObject.GetComponent<Ball>().CurrentVelocity = newBallVelocity;
+				else
+					newBallObject.transform.position = balls[i].transform.position;
 				newBalls.Add(newBallObject);
 			}
 			balls = balls.Concat(newBalls).ToList();
@@ -160,7 +170,7 @@ public class BallManager : MonoBehaviour
 			InitBall();
 	}
 
-	public void UpdateSizeOfAllBalls()
+	public void UpdateSizeOfAllStuckBalls()
 	{
 		IEnumerable<Ball> stuckBalls = balls.Select(b => b.GetComponent<Ball>()).Where(b => b.StuckToPaddle);
 		foreach (Ball ball in stuckBalls)

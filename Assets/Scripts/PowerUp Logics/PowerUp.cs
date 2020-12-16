@@ -39,7 +39,7 @@ public class PowerUp : MonoBehaviour
 	{
 		if (collision.gameObject.GetComponent<Paddle>())
 		{
-			Debug.Log("Power Up");
+			//Debug.Log("Power Up");
 			GameManager.Instance.AddToScore(Score);
 			TriggerAction();
 			PlaySound();

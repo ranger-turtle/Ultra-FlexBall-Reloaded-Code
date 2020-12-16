@@ -1,10 +1,8 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 
 public class LevelSetNameButton : MonoBehaviour, IPointerClickHandler
 {
@@ -28,12 +26,20 @@ public class LevelSetNameButton : MonoBehaviour, IPointerClickHandler
 		}
 		else
 		{
-			Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
 			LoadedGameData.Continue = Input.GetKey(KeyCode.LeftControl) || FirstLevel ? false : true;
 			CheckSave();
-			coverAnimator.Cover(WaitForSceneLoad("Level"));
+			if (LoadedGameData.Continue || !ContainsIntro())
+				coverAnimator.Cover(WaitForSceneLoad("Level"));
+			else if (ContainsIntro())
+			{
+				CutsceneData.CutsceneName = "Intro";
+				CutsceneData.NextScene = "Level";
+				coverAnimator.Cover(WaitForSceneLoad("Cutscene"));
+			}
 		}
 	}
+
+	private bool ContainsIntro() => Directory.Exists(Path.Combine($"{LoadedGameData.LevelSetDirectory}", $"{LoadedGameData.LevelSetFileName}", "Intro"));
 
 	private void CheckSave()
 	{

@@ -70,7 +70,7 @@ public class ParticleManager : MonoBehaviour
 
 	public void CreateBrickParticles(IEnumerable<BrickType> brickProperties)
 	{
-		brickParticleGradients = brickProperties.Where(b => b.Properties.IsChimneyLike).ToDictionary(k => k.Properties.Id, v => GenerateBrickParticleGradient(v.Properties));
+		brickParticleGradients = brickProperties.Where(b => b.Properties.IsChimneyLike && b.Properties.ChimneyColourSchemeType == ChimneyColourSchemeType.TwoColours).ToDictionary(k => k.Properties.Id, v => GenerateBrickParticleGradient(v.Properties));
 	}
 
 	public ParticleSystem GenerateBrickParticle(BrickProperties brickProperties)
@@ -87,9 +87,12 @@ public class ParticleManager : MonoBehaviour
 			default:
 				return null;
 		}
-		Gradient gradient = GetBrickParticles(brickProperties.Id);
-		ParticleSystem.MainModule mainModule = particleSystem.main;
-		mainModule.startColor = new ParticleSystem.MinMaxGradient(gradient) { mode = ParticleSystemGradientMode.RandomColor };
+		if (brickProperties.ChimneyColourSchemeType == ChimneyColourSchemeType.TwoColours)
+		{
+			Gradient gradient = GetBrickParticleGradient(brickProperties.Id);
+			ParticleSystem.MainModule mainModule = particleSystem.main;
+			mainModule.startColor = new ParticleSystem.MinMaxGradient(gradient) { mode = ParticleSystemGradientMode.RandomColor };
+		}
 		return particleSystem;
 	}
 
@@ -107,7 +110,7 @@ public class ParticleManager : MonoBehaviour
 		return gradient;
 	}
 
-	private Gradient GetBrickParticles(int brickId) => brickParticleGradients[brickId];
+	private Gradient GetBrickParticleGradient(int brickId) => brickParticleGradients[brickId];
 
 	public void GenerateBrickHitEffect(Vector3 brickHitPosition, Vector2 normal)
 	{
@@ -171,22 +174,23 @@ public class ParticleManager : MonoBehaviour
 	public void GeneratePenetratingBallParticles(GameObject ball, BallSize ballSize)
 		=> GenerateBallParticles(PenetratingParticleSystemPrefab, ball, ballSize, PenetratingBallParticleObjectName);
 
-	private void UpdateBallParticles(GameObject ball, string name)
+	private void UpdateBallParticles(GameObject ball, string name, BallSize ballSize)
 	{
 		GameObject particles = ball.transform.Find(name)?.gameObject;
 		if (particles)
 		{
 			ParticleSystem particleSystem = particles.GetComponent<ParticleSystem>();
 			ParticleSystem.ShapeModule shapeModule = particleSystem.shape;
-			shapeModule.radius = GetRadiusBasedOnBallSize((BallSize)ball.GetComponent<Ball>().BallSize);
+			shapeModule.radius = GetRadiusBasedOnBallSize(ballSize);
 			//TODO increase particle rate with ball size
 		}
 	}
 
-	public void UpdateAllBallParticles(GameObject ball)
+	//I have had to add parameter "ballsize" cause ball GameObject has not been updated yet when this is called
+	public void UpdateAllBallParticles(GameObject ball, BallSize ballSize)
 	{
-		UpdateBallParticles(ball, ExplodingBallParticleObjectName);
-		UpdateBallParticles(ball, PenetratingBallParticleObjectName);
+		UpdateBallParticles(ball, ExplodingBallParticleObjectName, ballSize);
+		UpdateBallParticles(ball, PenetratingBallParticleObjectName, ballSize);
 	}
 
 	private void DestroyBallParticles(GameObject ball, string name)

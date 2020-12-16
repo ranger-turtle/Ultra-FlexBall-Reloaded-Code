@@ -1,25 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 internal class Logger
 {
 	public static void SaveLevelSetErrorLog(string levelSetDirectory, string levelSetFileName, List<string> errors)
 	{
-		SaveLog(errors, $"{levelSetDirectory}", $"{levelSetFileName}/levelSet_errors.errorlog");
+		SaveLog(errors, $"{levelSetDirectory}", $"{levelSetFileName}/levelSet_errors.log");
 	}
 
 	public static void SaveLevelErrorLog(string levelSetDirectory, string levelSetFileName, int levelNum, string levelName, List<string> errors)
 	{
-		SaveLog(errors, $"{levelSetDirectory}/{levelSetFileName}", $"level{levelNum} ({levelName}).errorlog");
+		SaveLog(errors, $"{levelSetDirectory}/{levelSetFileName}", $"level{levelNum} ({levelName}).log");
 	}
 
 	public static void SaveGameErrorLog(string directory, List<string> errors)
 	{
-		SaveLog(errors, $"{directory}", $"Level set choose errors.errorlog");
+		SaveLog(errors, $"{directory}", $"Level set choose errors.log");
 	}
 
 	private static void SaveLog(List<string> errors, string levelSetDirectory, string logFileName)

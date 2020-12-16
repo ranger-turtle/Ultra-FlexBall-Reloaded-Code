@@ -32,14 +32,16 @@ public class Paddle : MonoBehaviour
 	private GameObject sideElectrodes;
 	[SerializeField]
 	private GameObject magnetZap;
-	[SerializeField]
-	private SoundManager soundManager;
-	private float ballBounceFactor;
 
 	private float currentMouseX;
 
 	[SerializeField]
+	private SoundManager soundManager;
+	[SerializeField]
 	private HUDManager hudManager;
+
+	[SerializeField]
+	private SpriteRenderer spriteRenderer;
 #pragma warning restore CS0649 // Field 'Paddle.hudManager' is never assigned to, and will always have its default value null
 
 	public bool MagnetActive
@@ -73,9 +75,9 @@ public class Paddle : MonoBehaviour
 	private void Start()
 	{
 		mainCamera = FindObjectOfType<Camera>();
-		Cursor.visible = false;
 		SetLength(GameManager.Instance.PaddleLengthLevel);
-		Debug.Log($"Paddle Length: {GameManager.Instance.PaddleLengthLevel}");
+		spriteRenderer = GetComponent<SpriteRenderer>();
+		//Debug.Log($"Paddle Length: {GameManager.Instance.PaddleLengthLevel}");
 		//Screen.SetResolution(640, 480, true);
 		//currentMouseX = transform.position.x;
 	}
@@ -95,15 +97,15 @@ public class Paddle : MonoBehaviour
 	private void PaddleMovement()
 	{
 		float mousePositionX = mainCamera.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, 0)).x;
-		float leftBoundX = leftBound.transform.position.x + GetComponent<SpriteRenderer>().size.x / 2;
-		float rightBoundX = rightBound.transform.position.x - GetComponent<SpriteRenderer>().size.x / 2;
+		float leftBoundX = leftBound.transform.position.x + spriteRenderer.size.x / 2;
+		float rightBoundX = rightBound.transform.position.x - spriteRenderer.size.x / 2;
 		if (mousePositionX != currentMouseX)
 		{
-			float xPositionForCheck = transform.position.x + mousePositionX - currentMouseX;
+			float difference = (mousePositionX - currentMouseX) * 1.6f;
+			float xPositionForCheck = transform.position.x + difference;
 			float finalMouseX = Mathf.Clamp(xPositionForCheck, leftBoundX, rightBoundX);
 			currentMouseX += mousePositionX - currentMouseX;
 			transform.position = new Vector3(finalMouseX, transform.position.y);
-			ballBounceFactor += currentMouseX - mousePositionX;
 		}
 	}
 
@@ -152,12 +154,13 @@ public class Paddle : MonoBehaviour
 				ball.UpdateSize();
 				ball.FinishThrust();
 				ParticleManager.Instance.RemoveThrustingFlame(ball.gameObject);
-				if (!GameManager.Instance.MagnetPaddle || brickBuster.LastFrameVelocity.magnitude >= BallManager.maxBallSpeed * 0.8f)
+				float ballSpeedLerp = Mathf.Lerp(BallManager.minBallSpeed, BallManager.maxBallSpeed, 0.7f);
+				if (!GameManager.Instance.MagnetPaddle || brickBuster.LastFrameVelocity.magnitude >= ballSpeedLerp)
 				{
 					ball.transform.position = new Vector3(ball.transform.position.x, paddleColliderBounds.max.y + ball.GetComponent<BoxCollider2D>().bounds.extents.y + .001f, ball.transform.position.z);
 					futureVelocity = PhysicsHelper.GetAngledVelocity(angle) * Mathf.Max(brickBuster.LastFrameVelocity.magnitude * 0.80f, BallManager.minBallSpeed);
 					futureVelocity = new Vector2(RoundToTwoPlaces(futureVelocity.x), futureVelocity.y);
-					if (brickBuster.LastFrameVelocity.magnitude < BallManager.maxBallSpeed * 0.8f)
+					if (brickBuster.LastFrameVelocity.magnitude < ballSpeedLerp)
 						soundManager.PlaySfx("Normal Ball Bounce");
 					else
 						BounceWithStrongForce(particlePosition);
@@ -167,7 +170,8 @@ public class Paddle : MonoBehaviour
 				{
 					futureVelocity = PhysicsHelper.GetAngledVelocity(angle) * BallManager.minBallSpeed;
 					futureVelocity = new Vector2(RoundToTwoPlaces(futureVelocity.x), futureVelocity.y);
-					if (brickBuster.LastFrameVelocity.magnitude < BallManager.maxBallSpeed * 0.5f)
+					ballSpeedLerp = Mathf.Lerp(BallManager.minBallSpeed, BallManager.maxBallSpeed, 0.4f);
+					if (brickBuster.LastFrameVelocity.magnitude < ballSpeedLerp)
 						soundManager.PlaySfx("Magnet Stick");
 					else
 						BounceWithStrongForce(particlePosition);

@@ -22,11 +22,11 @@ public class ProtectiveBarrier : MonoBehaviour
 			float secondPointXToCompare = contactX < leftPaddleElectrode.transform.position.x ? leftPaddleElectrode.transform.position.x : rightPaddleElectrode.transform.position.x;
 			if (Mathf.Abs(contactX - secondPointXToCompare) > indestructibleBarrierLength)
 			{
-				Debug.Log("Deactivate");
+				//Debug.Log("Deactivate");
 				GameManager.Instance.DecreaseProtectiveBarrierLevel();
 			}
-			else
-				Debug.Log("Withstood");
+			//else
+				//Debug.Log("Withstood");
 			SoundManager.Instance.PlaySfx("Protective Barrier Hit");
 		}
 	}

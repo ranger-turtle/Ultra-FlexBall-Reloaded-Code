@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -8,12 +9,16 @@ public class MusicManager : MonoBehaviour
 	#region Singleton
 	public static MusicManager Instance { get; private set; }
 
+	[SerializeField]
+	private AudioClip fanfare;
+
 	void Awake()
 	{
 		if (Instance)
-			Destroy(Instance);
+			Destroy(gameObject);
 		else
 		{
+			DontDestroyOnLoad(gameObject);
 			Instance = this;
 		}
 	}
@@ -21,9 +26,24 @@ public class MusicManager : MonoBehaviour
 
 	[SerializeField]
 	private AudioSource musicSource;
+	[SerializeField]
+	private AudioClip mainMenuMusic;
 
 	private Dictionary<string, AudioClip> loadedMusic;
 	private AudioClip levelSetDefaultMusic;
+
+	private void Start()
+	{
+		musicSource.mute = SettingsManager.LoadBool("mute", false);
+		musicSource.volume = SettingsManager.LoadFloat("volume", 0.60f);
+		musicSource.Play();
+	}
+
+	private void Update()
+	{
+		if (Input.GetKeyDown(KeyCode.M))
+			ToggleMute();
+	}
 
 	public void LoadLevelSetTextures(string levelSetDirectory, string levelSetFileName, TestMode testMode)
 	{
@@ -82,5 +102,52 @@ public class MusicManager : MonoBehaviour
 			musicSource.clip = newClip;
 			musicSource.Play();
 		}
+	}
+
+	public void LaunchSlowDown()
+	{
+		DontDestroyOnLoad(gameObject);
+		StartCoroutine(SlowDown());
+	}
+
+	public IEnumerator SlowDown()
+	{
+		while (musicSource.pitch > 0)
+		{
+			musicSource.pitch -= 0.05f;
+			yield return new WaitForSeconds(0.2f);
+		}
+		yield return new WaitForSeconds(0.3f);
+		musicSource.pitch = 1;
+		musicSource.clip = mainMenuMusic;
+		musicSource.Play();
+	}
+
+	public void SwitchToTitle()
+	{
+		if (musicSource.clip != mainMenuMusic)
+		{
+			musicSource.clip = mainMenuMusic;
+			musicSource.Play();
+		}
+	}
+
+	public void PlayFanfare()
+	{
+		musicSource.PlayOneShot(fanfare);
+		SwitchToTitle();
+	}
+
+	public void PlayMusic(AudioClip audioClip)
+	{
+		while (audioClip.loadState == AudioDataLoadState.Loading) ;
+		musicSource.clip = audioClip;
+		musicSource.Play();
+	}
+
+	internal void ToggleMute()
+	{
+		bool newValue = musicSource.mute = !musicSource.mute;
+		SettingsManager.SaveBool("mute", newValue);
 	}
 }

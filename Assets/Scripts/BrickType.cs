@@ -1,5 +1,4 @@
 ﻿using LevelSetData;
-using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
@@ -99,12 +98,6 @@ public class BrickType
 			else
 				throw new TextureNotFoundException($"{path}/{brickname}/bulletbreak.png");
 		}
-
-		if (File.Exists($"{path}/{brickname}/explosionbreak.png"))
-			ExplosionBreakAnimationSprites = ReadAnimation(brickname, $"{path}/{brickname}/explosionbreak");
-
-		if (File.Exists($"{path}/{brickname}/bulletbreak.png"))
-			BulletBreakAnimationSprites = ReadAnimation(brickname, $"{path}/{brickname}/bulletbreak");
 		#endregion
 
 		#region audio
@@ -143,7 +136,7 @@ public class BrickType
 					break;
 			}
 			float unityBrickTextureScaleFactor = brickTexture.width / BrickProperties.PIXEL_WIDTH * 48.0f;
-			for (int i = 0, p = 0; p < brickTexture.height; p += singleSpriteHeight, i++)
+			for (int i = 0, p = brickTexture.height - singleSpriteHeight; p >= 0; p -= singleSpriteHeight, i++)
 			{
 				sprites[i] = CreateSpriteFromTexture(brickTexture, singleSpriteHeight, unityBrickTextureScaleFactor, p);
 			}

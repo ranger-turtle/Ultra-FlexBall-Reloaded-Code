@@ -11,11 +11,11 @@ public class Explosion : MonoBehaviour
 
 	protected void Destroy() => Destroy(gameObject);
 
-	protected virtual void OnTriggerEnter2D(Collider2D collider) => StartCoroutine(WaitForExplosion(collider));
+	protected virtual void OnTriggerEnter2D(Collider2D collider) => WaitForExplosion(collider); // StartCoroutine(WaitForExplosion(collider));
 
-	private IEnumerator WaitForExplosion(Collider2D collider)
+	private void WaitForExplosion(Collider2D collider)
 	{
-		yield return new WaitForSeconds(Time.deltaTime * 3.5f);
+		//yield return new WaitForSeconds(Time.deltaTime * 1.7f);
 		//BONUS try finding better way how to support destroyed bricks
 		//BONUS try fixing uneven explosion assign
 		if (collider)

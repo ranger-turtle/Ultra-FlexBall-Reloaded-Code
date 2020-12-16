@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 
 public class GameLoader : MonoBehaviour
 {
@@ -13,13 +11,21 @@ public class GameLoader : MonoBehaviour
 
 	public void Start()
 	{
+		Cursor.visible = false;
+		Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
 		if (LoadedGameData.BurnAnimation == null)
 		{
 			LoadedGameData.BurnAnimation = burnAnimation;
 			LoadedGameData.DefaultBrickTypes = FileImporter.LoadBricks(null);
 		}
 		if (LoadedGameData.TestMode != TestMode.None)
-			coverManager.Cover(GoToScene("Level"));
+			StartCoroutine(WaitForUncover());
+	}
+
+	private IEnumerator WaitForUncover()
+	{
+		yield return new WaitWhile(() => !coverManager.Uncovered);
+		coverManager.Cover(GoToScene("Level"));
 	}
 
 	private IEnumerator GoToScene(string sceneName)

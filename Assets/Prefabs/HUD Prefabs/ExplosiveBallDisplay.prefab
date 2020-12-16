@@ -9,6 +9,21 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1027599908219182166, guid: afa2e435c2ea0a740a99c2002d074720,
         type: 3}
+      propertyPath: m_Pivot.x
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 1027599908219182166, guid: afa2e435c2ea0a740a99c2002d074720,
+        type: 3}
+      propertyPath: m_Pivot.y
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 1027599908219182166, guid: afa2e435c2ea0a740a99c2002d074720,
+        type: 3}
+      propertyPath: m_RootOrder
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1027599908219182166, guid: afa2e435c2ea0a740a99c2002d074720,
+        type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
       objectReference: {fileID: 0}
@@ -21,6 +36,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_LocalPosition.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1027599908219182166, guid: afa2e435c2ea0a740a99c2002d074720,
+        type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1027599908219182166, guid: afa2e435c2ea0a740a99c2002d074720,
         type: 3}
@@ -39,16 +59,6 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1027599908219182166, guid: afa2e435c2ea0a740a99c2002d074720,
         type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 1027599908219182166, guid: afa2e435c2ea0a740a99c2002d074720,
-        type: 3}
-      propertyPath: m_RootOrder
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1027599908219182166, guid: afa2e435c2ea0a740a99c2002d074720,
-        type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
       value: 0
       objectReference: {fileID: 0}
@@ -62,16 +72,6 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 1027599908219182166, guid: afa2e435c2ea0a740a99c2002d074720,
-        type: 3}
-      propertyPath: m_Pivot.x
-      value: 0.5
-      objectReference: {fileID: 0}
-    - target: {fileID: 1027599908219182166, guid: afa2e435c2ea0a740a99c2002d074720,
-        type: 3}
-      propertyPath: m_Pivot.y
-      value: 0.5
-      objectReference: {fileID: 0}
     - target: {fileID: 1027599908219182167, guid: afa2e435c2ea0a740a99c2002d074720,
         type: 3}
       propertyPath: m_Name
@@ -81,7 +81,7 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Sprite
       value: 
-      objectReference: {fileID: 5255281988259590125, guid: 9d9624e63ac899644a42f38b0700d72b,
+      objectReference: {fileID: 21300000, guid: dd1c0ae491172cf40b3b050a7eba4fc7,
         type: 3}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: afa2e435c2ea0a740a99c2002d074720, type: 3}

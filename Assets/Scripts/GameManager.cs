@@ -1,5 +1,4 @@
-﻿#define DEBUG
-using LevelSetData;
+﻿using LevelSetData;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -35,25 +34,19 @@ public class GameManager : MonoBehaviour
 	[SerializeField]
 #pragma warning disable CS0649 // Field 'GameManager.shutterAnimator' is never assigned to, and will always have its default value null
 	private ShutterAnimationManager shutterAnimator;
-#pragma warning restore CS0649 // Field 'GameManager.shutterAnimator' is never assigned to, and will always have its default value null
 	[SerializeField]
-#pragma warning disable CS0649 // Field 'GameManager.scoreText' is never assigned to, and will always have its default value null
 	private Text scoreText;
-#pragma warning restore CS0649 // Field 'GameManager.scoreText' is never assigned to, and will always have its default value null
 	[SerializeField]
-#pragma warning disable CS0649 // Field 'GameManager.paddleNumberText' is never assigned to, and will always have its default value null
 	private Text paddleNumberText;
-#pragma warning restore CS0649 // Field 'GameManager.paddleNumberText' is never assigned to, and will always have its default value null
 	[SerializeField]
-#pragma warning disable CS0649 // Field 'GameManager.hud' is never assigned to, and will always have its default value null
 	private GameObject hud;
-#pragma warning restore CS0649 // Field 'GameManager.hud' is never assigned to, and will always have its default value null
 	[SerializeField]
-#pragma warning disable CS0649 // Field 'GameManager.hudManager' is never assigned to, and will always have its default value null
 	private HUDManager hudManager;
 #pragma warning restore CS0649 // Field 'GameManager.hudManager' is never assigned to, and will always have its default value null
 	[SerializeField]
 	private ErrorMessage errorMessage;
+	[SerializeField]
+	private MessageManager quoteManager;
 
 	private LevelSet CurrentLevelSet;
 	private int LevelIndex;
@@ -182,17 +175,11 @@ public class GameManager : MonoBehaviour
 	}
 
 	[SerializeField]
-#pragma warning disable CS0649 // Field 'GameManager.ExplosionPrefab' is never assigned to, and will always have its default value null
 	private GameObject explosionPrefab;
-#pragma warning restore CS0649 // Field 'GameManager.ExplosionPrefab' is never assigned to, and will always have its default value null
 	[SerializeField]
-#pragma warning disable CS0649 // Field 'GameManager.FirstBrickPos' is never assigned to, and will always have its default value null
 	private GameObject firstBrickPos;
-#pragma warning restore CS0649 // Field 'GameManager.FirstBrickPos' is never assigned to, and will always have its default value null
 	[SerializeField]
-#pragma warning disable CS0649 // Field 'GameManager.BrickPrefab' is never assigned to, and will always have its default value null
 	private GameObject brickPrefab;
-#pragma warning restore CS0649 // Field 'GameManager.BrickPrefab' is never assigned to, and will always have its default value null
 
 	private BrickType[] LevelSetBrickTypes;
 
@@ -209,7 +196,7 @@ public class GameManager : MonoBehaviour
 	{
 		if (shutterAnimator.Uncovered)
 		{
-			if (Input.GetKeyDown(KeyCode.Escape))
+			if (Input.GetKeyDown(KeyCode.Escape) && !quoteManager.isActiveAndEnabled)
 			{
 				if (hudManager.Paused)
 					CoverSceneAndDoAction(ExitGame);
@@ -219,8 +206,11 @@ public class GameManager : MonoBehaviour
 
 			if (Input.GetKeyDown(KeyCode.H))
 				hud.SetActive(!hud.activeSelf);
-			if (Input.GetKeyDown(KeyCode.P))
+			if (Input.GetKeyDown(KeyCode.P) && !quoteManager.isActiveAndEnabled)
 				hudManager.Pause();
+
+			if (Input.GetKeyDown(KeyCode.T))
+				quoteManager.ToggleShowTips();
 		}
 	}
 
@@ -228,8 +218,8 @@ public class GameManager : MonoBehaviour
 
 	private void ResetOnLoseLife()
 	{
-		BallManager.Instance.InitBall();
 		BallSize = 0;
+		BallManager.Instance.InitBall();
 		MagnetPaddle = false;
 		DescendingBricks = false;
 		RemoveBallUpgrades();
@@ -248,8 +238,8 @@ public class GameManager : MonoBehaviour
 
 	private void ResetOnNextLevel()
 	{
-		BallManager.Instance.InitBall();
 		DecreaseBall();
+		BallManager.Instance.InitBall();
 		Paddle.Instance.MagnetActive = true;
 		PowerUpManager.Instance.Reset();
 		DecreaseProtectiveBarrierLevel();
@@ -315,6 +305,21 @@ public class GameManager : MonoBehaviour
 			errorMessage.Show("Some bricks in levels belong to types which are not loaded. They will be ignored. Please check your bricks with level editor.");
 	}
 
+	private void TryLoadCharacterMessage(LevelProperties levelProperties)
+	{
+		if (levelProperties.CharacterName != "<none>")
+			StartCoroutine(DisplayCharacterMessage(levelProperties));
+	}
+
+	private IEnumerator DisplayCharacterMessage(LevelProperties levelProperties)
+	{
+		yield return new WaitWhile(() => !shutterAnimator.Uncovered);
+		Texture2D avatarTexture = FileImporter.LoadTexture($"{LoadedGameData.LevelSetDirectory}/{LoadedGameData.LevelSetFileName}/Avatars/{levelProperties.CharacterName}");
+		Sprite avatarSprite = Sprite.Create(avatarTexture, Rect.MinMaxRect(0, 0, avatarTexture.width, avatarTexture.height), Vector2.zero);
+
+		quoteManager.Show(levelProperties.CharacterName, avatarSprite, levelProperties.Quote, levelProperties.IsQuoteTip);
+	}
+
 	public void InitLevelSet(LevelSet levelSet, BrickType[] defaultBrickTypes, BrickType[] customBrickTypes, LevelPersistentData levelPersistentData)
 	{
 		CurrentLevelSet = levelSet;
@@ -364,22 +369,23 @@ public class GameManager : MonoBehaviour
 			}
 		}
 		SetBricksRequiredToCompleteNumber();
+		TryLoadCharacterMessage(CurrentLevelSet.Levels[LevelIndex].LevelProperties);
 	}
 
 	private void GenerateBrick(int brickTypeId, int brickX, int brickY, bool tryHide = true, bool spaceDjoelBrick = false)
 	{
 		BrickType brickType = GetBrickTypeById(brickTypeId);
-		Vector3 position = new Vector3(firstBrickPos.transform.position.x + (brickX * BrickType.BrickUnityWidth), firstBrickPos.transform.position.y - (brickY * BrickType.BrickUnityHeight), 2);
+		Vector3 position = new Vector3(firstBrickPos.transform.position.x + (brickX * BrickType.BrickUnityWidth), firstBrickPos.transform.position.y - (brickY * BrickType.BrickUnityHeight), 4.2f);
 		GameObject brick = Instantiate(brickPrefab, position: position, Quaternion.identity);
 		brick.GetComponent<SpriteRenderer>().sprite = brickType.FirstSprite;
 		Brick brickScript = brick.GetComponent<Brick>();
 		brickScript.brickType = brickType;
 		brickScript.x = brickX;
 		brickScript.y = brickY;
+		if (spaceDjoelBrick)
+			brickScript.StartIcyFading();
 		if (tryHide)
 			brickScript.TryHide();
-		else if (spaceDjoelBrick)
-			brickScript.StartIcyFading();
 		brick.name = $"Brick nr {GetBrickIndex(brickX, brickY)}";
 		bricks[GetBrickIndex(brickX, brickY)] = brickScript;
 	}
@@ -396,6 +402,23 @@ public class GameManager : MonoBehaviour
 
 	private int GetBrickIndex(int x, int y) => x + (y * LevelSet.COLUMNS);
 
+	internal void SwapBricks(int x1, int y1, int x2, int y2)
+	{
+		Brick tmp = GetBrickByCoordinates(x1, y1);
+		bricks[GetBrickIndex(x1, y1)] = GetBrickByCoordinates(x2, y2);
+		bricks[GetBrickIndex(x2, y2)] = tmp;
+		if (bricks[GetBrickIndex(x1, y1)])
+		{
+			bricks[GetBrickIndex(x1, y1)].x = x1;
+			bricks[GetBrickIndex(x1, y1)].y = y1;
+		}
+		if (bricks[GetBrickIndex(x2, y2)])
+		{
+			bricks[GetBrickIndex(x2, y2)].x = x2;
+			bricks[GetBrickIndex(x2, y2)].y = y2;
+		}
+	}
+
 	//points can be negative so Mathf.Max invocation is necessary
 	internal void AddToScore(int points) => scoreText.text = $"{Mathf.Max(int.Parse(scoreText.text) + points, 0)}";
 
@@ -403,7 +426,7 @@ public class GameManager : MonoBehaviour
 	{
 		if (BallSize != BallSize.Megajocke)
 			BallSize++;
-		BallManager.Instance.UpdateSizeOfAllBalls();
+		BallManager.Instance.UpdateSizeOfAllStuckBalls();
 	}
 
 	public void DecreaseBall()
@@ -411,7 +434,7 @@ public class GameManager : MonoBehaviour
 		if (BallSize != BallSize.Normal)
 			BallSize--;
 		RemoveBallUpgrades();
-		BallManager.Instance.UpdateSizeOfAllBalls();
+		BallManager.Instance.UpdateSizeOfAllStuckBalls();
 	}
 
 	private void RemoveBallUpgrades()
@@ -513,11 +536,14 @@ public class GameManager : MonoBehaviour
 				brickY = brickScript.y;
 				break;
 		}
-		if (brickX >= 0 && brickY >= 0)
+		if (brickX >= 0 && brickY >= 0 && brickX < LevelSet.COLUMNS && brickY < LevelSet.ROWS)
 		{
 			Brick pointedBrick = bricks[GetBrickIndex(brickX, brickY)];
 			if (pointedBrick?.brickType.Properties.ExplosionResistant == false)
+			{
+				pointedBrick.TryIncreasePowerUpField();
 				pointedBrick.Break(pointedBrick.brickType.Properties.Points / 2, force: true);
+			}
 		}
 	}
 
@@ -558,6 +584,13 @@ public class GameManager : MonoBehaviour
 			Destroy(megaExplosionToErase.gameObject);
 	}
 
+	public void EraseMegaMissiles()
+	{
+		MegaMissile[] megaMissiles = FindObjectsOfType<MegaMissile>();
+		foreach (var megaMissile in megaMissiles)
+			Destroy(megaMissile.gameObject);
+	}
+
 	public void DisposeBrick(Brick brick)
 	{
 		bricks[brick.x + (brick.y * LevelSet.COLUMNS)] = null;
@@ -573,16 +606,27 @@ public class GameManager : MonoBehaviour
 
 	public void CheckIfLevelIsCompleted()
 	{
-		if (numberOfBricksRequiredToComplete <= 0 && !levelCompleted)
+	//	int numberOfBricksRequiredToComplete = bricks.Count(b => ((b?.Hidden == false && b.BrickProperties.RequiredToComplete) || (b?.Hidden == true && b.BrickProperties.RequiredToCompleteWhenHidden)) && !b.SpaceDjoelBrick && !b.Broken);
+		if (numberOfBricksRequiredToComplete <= 0 && !levelCompleted && shutterAnimator.Uncovered)
 		{
 			levelCompleted = true;
 			CoverSceneAndDoAction(CleanAfterFinishingLevel, "Win");
 		}
+#if DEBUG
+		/*int count = bricks.Where(b => b != null).Count();
+		if (count == 0 && numberOfBricksRequiredToComplete > 0)
+		{
+			Debug.Log($"Actual Required bricks left: {count}");
+			Debug.Log($"Space Djoel Bricks: {bricks.Where(b => b?.SpaceDjoelBrick == true).Count()}");
+			Debug.Log($"Broken Bricks: {bricks.Where(b => b?.Broken == true).Count()}");
+			Debug.LogError("brick mismatch");
+		}*/
+#endif
 	}
 
 	private void SetBricksRequiredToCompleteNumber()
 	{
-		numberOfBricksRequiredToComplete = bricks.Count(b => ((b?.Hidden == false && b?.BrickProperties.RequiredToComplete == true) || (b?.Hidden == true && b?.BrickProperties.RequiredToCompleteWhenHidden == true)) && b?.SpaceDjoelBrick == false);
+		numberOfBricksRequiredToComplete = bricks.Count(b => ((b?.Hidden == false && b.BrickProperties.RequiredToComplete) || (b?.Hidden == true && b.BrickProperties.RequiredToCompleteWhenHidden)) && !b.SpaceDjoelBrick && !b.Broken);
 	}
 
 	public void IncrementRequiredBricks()
@@ -635,7 +679,7 @@ public class GameManager : MonoBehaviour
 		for (int i = bricks.Length - 1; i >= 0; i--)
 		{
 			Brick brick = bricks[i];
-			if (brick && brick.brickType.Properties.IsDescending)
+			if (brick)
 			{
 				int yIndexInIteration = i / LevelSet.COLUMNS;
 				brick.TryMoveBlockDown(1);
@@ -766,7 +810,8 @@ public class GameManager : MonoBehaviour
 	internal void LosePaddle()
 	{
 		paddles--;
-		CoverSceneAndDoAction(CleanAfterLoseLife, "Lose Paddle");
+		if (!levelCompleted)
+			CoverSceneAndDoAction(CleanAfterLoseLife, "Lose Paddle");
 	}
 
 	#region Multiplying
@@ -829,10 +874,12 @@ public class GameManager : MonoBehaviour
 		{
 			for (int x = 0; x < LevelSet.COLUMNS; x++)
 			{
-				bool hidden = bricks[GetBrickIndex(x, y)]?.Hidden ?? false;
-				bool spaceDjoelBrick = bricks[GetBrickIndex(x, y)]?.SpaceDjoelBrick ?? false;
-				BrickProperties brickProperties = bricks[GetBrickIndex(x, y)]?.BrickProperties;
-				if (brickProperties?.IsRegular == true)
+				int index = GetBrickIndex(x, y);
+				bool hidden = bricks[index]?.Hidden ?? false;
+				bool spaceDjoelBrick = bricks[index]?.SpaceDjoelBrick ?? false;
+				bool broken = bricks[index]?.Broken ?? true;
+				BrickProperties brickProperties = bricks[index]?.BrickProperties;
+				if (brickProperties?.IsRegular == true && !broken)
 				{
 					if (y != 0 && bricks[GetBrickIndex(x, y - 1)]?.BrickProperties.CanBeOverridenByStandardMultiplier != false)
 						tmpBrickLayer[GetBrickIndex(x, y - 1)] = new TemporaryLayerData(brickProperties.Id, hidden, spaceDjoelBrick);
@@ -850,25 +897,32 @@ public class GameManager : MonoBehaviour
 
 	internal void MultiplyExplosives()
 	{
-		TemporaryLayerData[] tmpBrickLayer = bricks.Select(b => new TemporaryLayerData() { Id = b?.BrickProperties.Id ?? 0, Hidden = b?.Hidden ?? false }).ToArray();
+		TemporaryLayerData[] tmpBrickLayer = bricks.Select(b =>
+		{
+			if (b && !b.Broken)
+				return new TemporaryLayerData(b.BrickProperties.Id, b.Hidden, b.SpaceDjoelBrick);
+			else
+				return new TemporaryLayerData(0);
+		}).ToArray();
 		int explosives = 0;//Number of explosives needed to determine if additional explosives should not be added.
 		for (int y = 0; y < LevelSet.ROWS; y++)
 		{
 			for (int x = 0; x < LevelSet.COLUMNS; x++)
 			{
-				bool hidden = bricks[GetBrickIndex(x, y)]?.Hidden ?? false;
-				bool spaceDjoelBrick = bricks[GetBrickIndex(x, y)]?.SpaceDjoelBrick ?? false;
-				BrickProperties brickProperties = bricks[GetBrickIndex(x, y)]?.BrickProperties;
-				if (brickProperties?.IsExplosive == true && brickProperties.CanBeMultipliedByExplosiveMultiplier)
+				int index = GetBrickIndex(x, y);
+				bool hidden = bricks[index]?.Hidden ?? false;
+				bool broken = bricks[index]?.Broken ?? true;
+				BrickProperties brickProperties = bricks[index]?.BrickProperties;
+				if (brickProperties?.IsExplosive == true && brickProperties.CanBeMultipliedByExplosiveMultiplier && !broken)
 				{
 					if (y != 0 && bricks[GetBrickIndex(x, y - 1)]?.BrickProperties.CanBeOverridenByExplosiveMultiplier != false)
-						tmpBrickLayer[GetBrickIndex(x, y - 1)] = new TemporaryLayerData(brickProperties.Id, hidden, spaceDjoelBrick);
+						tmpBrickLayer[GetBrickIndex(x, y - 1)] = new TemporaryLayerData(brickProperties.Id, hidden, false);
 					if (x != LevelSet.COLUMNS - 1 && bricks[GetBrickIndex(x + 1, y)]?.BrickProperties.CanBeOverridenByExplosiveMultiplier != false)
-						tmpBrickLayer[GetBrickIndex(x + 1, y)] = new TemporaryLayerData(brickProperties.Id, hidden, spaceDjoelBrick);
+						tmpBrickLayer[GetBrickIndex(x + 1, y)] = new TemporaryLayerData(brickProperties.Id, hidden, false);
 					if (y != LevelSet.ROWS - 1 && bricks[GetBrickIndex(x, y + 1)]?.BrickProperties.CanBeOverridenByExplosiveMultiplier != false)
-						tmpBrickLayer[GetBrickIndex(x, y + 1)] = new TemporaryLayerData(brickProperties.Id, hidden, spaceDjoelBrick);
+						tmpBrickLayer[GetBrickIndex(x, y + 1)] = new TemporaryLayerData(brickProperties.Id, hidden, false);
 					if (x != 0 && bricks[GetBrickIndex(x - 1, y)]?.BrickProperties.CanBeOverridenByExplosiveMultiplier != false)
-						tmpBrickLayer[GetBrickIndex(x - 1, y)] = new TemporaryLayerData(brickProperties.Id, hidden, spaceDjoelBrick);
+						tmpBrickLayer[GetBrickIndex(x - 1, y)] = new TemporaryLayerData(brickProperties.Id, hidden, false);
 					explosives++;
 				}
 			}
@@ -876,8 +930,8 @@ public class GameManager : MonoBehaviour
 		//Debug.Log($"Explosives: {explosives}");
 		for (int additionalExplosivePluses = 10 - explosives; additionalExplosivePluses > 0; additionalExplosivePluses--)
 		{
-			int x = UnityEngine.Random.Range(0, LevelSet.COLUMNS);
-			int y = UnityEngine.Random.Range(0, LevelSet.ROWS);
+			int x = UnityEngine.Random.Range(1, LevelSet.COLUMNS - 1);
+			int y = UnityEngine.Random.Range(1, LevelSet.ROWS - 1);
 			tmpBrickLayer[GetBrickIndex(x, y)] = new TemporaryLayerData(RegularExplosiveId);
 			if (y != 0 && bricks[GetBrickIndex(x, y - 1)]?.BrickProperties.CanBeOverridenByExplosiveMultiplier != false)
 				tmpBrickLayer[GetBrickIndex(x, y - 1)] = new TemporaryLayerData(RegularExplosiveId);
@@ -954,10 +1008,14 @@ public class GameManager : MonoBehaviour
 
 	IEnumerator CleanAfterFinishingLevel()
 	{
+		/*int actualRequiredBricks = bricks.Count(b => ((b?.Hidden == false && b.BrickProperties.RequiredToComplete) || (b?.Hidden == true && b.BrickProperties.RequiredToCompleteWhenHidden)) && b?.SpaceDjoelBrick == false && !b.Broken);
+		Debug.Log($"Actual required bricks: {actualRequiredBricks}");
+		Debug.Assert(numberOfBricksRequiredToComplete == actualRequiredBricks, "Brick mismatch");*/
 		yield return new WaitUntil(() => shutterAnimator.Covered);
 		CleanLevel();
 		EraseBricks();
 		EraseExplosions();
+		EraseMegaMissiles();
 		LevelIndex++;
 		if (LevelIndex < CurrentLevelSet.Levels.Count)
 		{
@@ -972,7 +1030,7 @@ public class GameManager : MonoBehaviour
 		}
 		else
 		{
-			Debug.Log("The End.");
+			//Debug.Log("The End.");
 			if (LoadedGameData.TestMode == TestMode.None)
 			{
 				DeleteSave();
@@ -983,13 +1041,31 @@ public class GameManager : MonoBehaviour
 		}
 	}
 
+	private bool ContainsOutro() => System.IO.Directory.Exists(System.IO.Path.Combine($"{LoadedGameData.LevelSetDirectory}", $"{LoadedGameData.LevelSetFileName}", "Outro"));
+
 	private void GoToLeaderboard(bool won)
 	{
 		EndGameData.HighScoreChange = true;
 		EndGameData.LastLevel = LevelIndex;
 		EndGameData.Score = int.Parse(scoreText.text);
 		EndGameData.Won = won;
-		SceneManager.LoadScene("Leaderboard");
+		if (!won)
+		{
+			MusicManager.Instance.LaunchSlowDown();
+			SceneManager.LoadScene("Leaderboard");
+		}
+		else
+		{
+			if (!ContainsOutro())
+				SceneManager.LoadScene("Leaderboard");
+			else
+			{
+				CutsceneData.CutsceneName = "Outro";
+				CutsceneData.NextScene = "Leaderboard";
+				CutsceneData.CutsceneType = CutsceneType.Outro;
+				SceneManager.LoadScene("Cutscene");
+			}
+		}
 	}
 
 	private IEnumerator ExitGame()
@@ -998,7 +1074,10 @@ public class GameManager : MonoBehaviour
 			hudManager.Pause();
 		yield return new WaitUntil(() => shutterAnimator.Covered);
 		if (LoadedGameData.TestMode == TestMode.None)
+		{
+			MusicManager.Instance.SwitchToTitle();
 			SceneManager.LoadScene("Level Set List");
+		}
 		else
 			Application.Quit();
 	}

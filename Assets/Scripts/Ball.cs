@@ -1,4 +1,5 @@
 ﻿using LevelSetData;
+using System.Collections;
 using System.Linq;
 using UnityEngine;
 
@@ -18,7 +19,7 @@ public class Ball : MonoBehaviour, IBrickBuster
 	public Vector3 LastHitPoint { get; set; }
 	public Vector2 LastHitNormal { get; set; }
 
-	private float differenceFromPaddleCenter;
+	public float DifferenceFromPaddleCenter { get; private set; }
 
 	public float StickXPosition { get; private set; }
 	public bool StuckToPaddle { get; set; }
@@ -34,12 +35,21 @@ public class Ball : MonoBehaviour, IBrickBuster
 
 	public bool Thrust { get; private set; }
 	private Vector2 velocityAfterThrust;
+	private bool destroyed;
+
 	public Coroutine ThrustCoroutine { get; private set; }
 
 	public int BallSize
 	{
 		get => GetComponent<Animator>().GetInteger("BallSize");
-		set => GetComponent<Animator>().SetInteger("BallSize", value);
+		set => StartCoroutine(TriggerAnimation(value));
+	}
+
+	private IEnumerator TriggerAnimation(int value)
+	{
+		float time = Time.deltaTime * Mathf.Pow(1.5f * value, 3) + 5.5f;
+		yield return new WaitForSeconds(Time.deltaTime * time);
+		GetComponent<Animator>().SetInteger("BallSize", value);
 	}
 
 	private void Awake()
@@ -63,12 +73,17 @@ public class Ball : MonoBehaviour, IBrickBuster
 		if ((int)GameManager.Instance.BallSize != this.BallSize)
 		{
 			BallSize = (int)GameManager.Instance.BallSize;
-			ParticleManager.Instance.UpdateAllBallParticles(gameObject);
 		}
+	}
+
+	public void UpdateParticles()
+	{
+		ParticleManager.Instance.UpdateAllBallParticles(gameObject, GameManager.Instance.BallSize);
 	}
 
 	public void Remove()
 	{
+		SoundManager.Instance.PlaySfx("Ball Fall");
 		BallManager.Instance.Remove(gameObject);
 	}
 
@@ -77,7 +92,7 @@ public class Ball : MonoBehaviour, IBrickBuster
 		CurrentVelocity = Vector3.zero;
 		VelocityToLaunch = futureVelocity;
 
-		differenceFromPaddleCenter = difference;
+		DifferenceFromPaddleCenter = difference;
 
 		StuckToPaddle = true;
 
@@ -96,15 +111,16 @@ public class Ball : MonoBehaviour, IBrickBuster
 		if (StuckToPaddle)
 		{
 			float stuckY = Paddle.Instance.GetComponent<BoxCollider2D>().bounds.max.y + thisBounds.extents.y + 0.025f;
-			transform.position = new Vector3(Paddle.Instance.transform.position.x - differenceFromPaddleCenter, stuckY);
+			transform.position = new Vector3(Paddle.Instance.transform.position.x - DifferenceFromPaddleCenter, stuckY, transform.position.z);
 		}
 	}
 
 	public void CloneProperties(Ball originalBall)
 	{
-		SetBallSizeWithoutAnimation((int)GameManager.Instance.BallSize);
+		SetBallSizeWithoutAnimation(originalBall.BallSize);
 		StuckToPaddle = originalBall.StuckToPaddle;
 		VelocityToLaunch = originalBall.VelocityToLaunch;
+		DifferenceFromPaddleCenter = originalBall.DifferenceFromPaddleCenter;
 	}
 
 	private void FixedUpdate()
@@ -128,7 +144,7 @@ public class Ball : MonoBehaviour, IBrickBuster
 				RaycastHit2D firstRaycast = boxCastHit[0];
 				float x = firstRaycast.normal.x != 0 ? firstRaycast.point.x + (thisBounds.extents.x + .01f) * firstRaycast.normal.x : firstRaycast.centroid.x;//Rounding in false condition is made to make bouncing in straight line possible
 				float y = firstRaycast.normal.y != 0 ? firstRaycast.point.y + (thisBounds.extents.y + .01f) * firstRaycast.normal.y : firstRaycast.centroid.y;
-				transform.position = new Vector2(x, y);
+				transform.position = new Vector3(x, y, transform.position.z);
 
 				RaycastHit2D paddleRaycast = boxCastHit.FirstOrDefault(bch => bch.collider.GetComponent<Paddle>());
 				if (paddleRaycast)
@@ -178,7 +194,7 @@ public class Ball : MonoBehaviour, IBrickBuster
 			}
 			else
 			{
-				transform.position = new Vector2(transform.position.x + CurrentVelocity.x, transform.position.y + CurrentVelocity.y);
+				transform.position = new Vector3(transform.position.x + CurrentVelocity.x, transform.position.y + CurrentVelocity.y, transform.position.z);
 				CheckIfOblivion();
 			}
 			CheckIfOutsideWall();
@@ -266,9 +282,9 @@ public class Ball : MonoBehaviour, IBrickBuster
 
 	private void CheckIfOblivion()
 	{
-		if (thisCollider.bounds.max.y < oblivion.min.y)
+		if (thisCollider.bounds.max.y < oblivion.min.y && !destroyed)
 		{
-			SoundManager.Instance.PlaySfx("Ball Fall");
+			destroyed = true;
 			Remove();
 		}
 	}

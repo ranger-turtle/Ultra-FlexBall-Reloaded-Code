@@ -2,11 +2,13 @@
 using System.IO;
 using UnityEngine;
 
+//BONUS make assets load in coroutines and add progress bar
 public class LevelSetLoader : MonoBehaviour
 {
     // Start is called before the first frame update
     void Start()
     {
+		Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
 		string levelSetDirectory = LoadedGameData.LevelSetDirectory;
 		string levelSetFileName = LoadedGameData.LevelSetFileName;
 		LevelSetData.LevelSet levelSet;

@@ -32,7 +32,7 @@ public class Bullet : MonoBehaviour, IBrickBuster
     {
 		ballBarrier = GameObject.Find("BallBarrier").GetComponent<BoxCollider2D>();
 		bouncePoints = GameManager.Instance.ShooterLevel;
-		CurrentVelocity = new Vector2(0, 0.08f);
+		CurrentVelocity = new Vector2(0, 0.11f);
 		//if (GameManager.Instance.ShooterLevel < 2)
 			//Physics2D.IgnoreCollision(gameObject.GetComponent<Collider2D>(), ballBarrier.GetComponent<Collider2D>());
 
@@ -100,7 +100,7 @@ public class Bullet : MonoBehaviour, IBrickBuster
 						CurrentVelocity = PhysicsHelper.GenerateReflectedVelocity(LastFrameVelocity, firstRaycast.normal);
 				}
 			}
-			Debug.Log($"Normal: {totalNormal.normalized}");
+			//Debug.Log($"Normal: {totalNormal.normalized}");
 		}
 		else
 			transform.position = new Vector2(transform.position.x + CurrentVelocity.x, transform.position.y + CurrentVelocity.y);

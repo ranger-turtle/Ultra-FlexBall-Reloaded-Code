@@ -1,6 +1,4 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 [RequireComponent(typeof(LineRenderer))]
@@ -29,13 +27,13 @@ public class ZapRenderer : MonoBehaviour
 	void Start()
 	{
 		lineRenderer = GetComponent<LineRenderer>();
-		StartCoroutine(Animate());
+		StartCoroutine(StartAnimation());
 	}
 
 	private void OnEnable() => Start();
 
 	// Update is called once per frame
-	private IEnumerator Animate()
+	private IEnumerator StartAnimation()
     {
 		while (true)
 		{

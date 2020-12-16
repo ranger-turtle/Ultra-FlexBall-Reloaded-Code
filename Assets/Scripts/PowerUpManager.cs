@@ -32,6 +32,8 @@ public class PowerUpManager : MonoBehaviour
 
 	private int powerUpMeter;
 
+	private bool timeLimit;
+
 	private void Start() => StartCoroutine(CountToYieldHelperPowerUp());
 
 	internal void Reset()
@@ -60,7 +62,7 @@ public class PowerUpManager : MonoBehaviour
 	{
 		bool yield = false;
 		powerUpMeter += increment;
-		if (powerUpMeter > 100)
+		if (powerUpMeter > 100 && !timeLimit)
 		{
 			powerUpMeter = 0;
 			YieldPowerUp(position, velocity, powerUpType);
@@ -83,6 +85,7 @@ public class PowerUpManager : MonoBehaviour
 		SoundManager soundManager = SoundManager.Instance;
 		soundManager.PlaySfx("Power Up Yield");
 		powerUp.GetComponent<PowerUp>().Score = score;
+		StartCoroutine(SuppresYieldGenerationForAMoment());
 	}
 
 	public void YieldHelperPowerUp()
@@ -112,5 +115,12 @@ public class PowerUpManager : MonoBehaviour
 				Reset();
 			}
 		}
+	}
+
+	public IEnumerator SuppresYieldGenerationForAMoment()
+	{
+		timeLimit = true;
+		yield return new WaitForSeconds(1.0f);
+		timeLimit = false;
 	}
 }

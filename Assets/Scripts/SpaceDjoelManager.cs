@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 public class SpaceDjoelManager : MonoBehaviour
@@ -32,7 +28,7 @@ public class SpaceDjoelManager : MonoBehaviour
 	[SerializeField]
 	private Transform generationYObject;
 
-	internal const float initialForce = 0.05f;
+	internal const float initialForce = 0.07f;
 	internal const float paddleBounceForce = 0.17f;
 
 	public int SpaceDjoelNumber => spaceDjoels.Count;

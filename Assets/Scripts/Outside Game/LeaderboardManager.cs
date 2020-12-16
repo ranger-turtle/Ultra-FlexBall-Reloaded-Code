@@ -1,8 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Runtime.Serialization.Formatters.Binary;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -33,6 +31,9 @@ public class LeaderboardManager : MonoBehaviour
 	private GameObject leaderboardRowPrefab;
 	[SerializeField]
 	private ShutterAnimationManager coverAnimator;
+
+	[SerializeField]
+	private Texture2D cursorTexture;
 #pragma warning restore CS0649 // Field 'LeaderboardManager.NickFieldObject' is never assigned to, and will always have its default value null
 
 	private List<LeaderboardPosition> leaderboardPositions;
@@ -45,6 +46,10 @@ public class LeaderboardManager : MonoBehaviour
     {
 		//if (Application.isEditor)
 		//LoadedGameData.DefaultBrickTypes = FileImporter.LoadBricks(null);
+		if (EndGameData.Won)
+			MusicManager.Instance.PlayFanfare();
+		Cursor.visible = true;
+		Cursor.SetCursor(cursorTexture, Vector2.zero, CursorMode.Auto);
 		leaderboardPositions = LoadHighScores(LoadedGameData.LevelSetFileName);
 		if (EndGameData.HighScoreChange)
 			currentIndex = ProcessLeaderboard(leaderboardPositions);

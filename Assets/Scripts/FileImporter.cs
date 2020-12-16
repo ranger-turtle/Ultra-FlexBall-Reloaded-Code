@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.Serialization.Formatters.Binary;
-using System.Text;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -68,12 +66,12 @@ internal class FileImporter
 	/// <param name="filePath"></param>
 	/// <exception cref="IOException"></exception>
 	/// <returns></returns>
-	public static Texture2D LoadTexture(string filePath)
+	public static Texture2D LoadTexture(string filePath, string extension = ".png")
 	{
 		Texture2D Tex2D;
 		byte[] FileData;
 
-		FileData = File.ReadAllBytes($"{filePath}.png");
+		FileData = File.ReadAllBytes($"{filePath}{extension}");
 		Tex2D = new Texture2D(2, 2);
 		if (Tex2D.LoadImage(FileData))
 			return Tex2D;
@@ -93,6 +91,19 @@ internal class FileImporter
 		}
 		else
 			return null;
+	}
+
+	public static AudioClip LoadCutsceneMusic(string cutsceneName, string levelSetName, string levelSetDirectory)
+	{
+		UnityWebRequest uwr = UnityWebRequestMultimedia.GetAudioClip(Path.Combine("file://", Application.dataPath, $"../Level sets/", levelSetName, cutsceneName, $"music.ogg"), AudioType.OGGVORBIS);
+		uwr.SendWebRequest();
+
+		if (uwr.isHttpError)
+			throw new FileNotFoundException();
+
+		while (uwr.downloadProgress < 1.0f) ;
+
+		return (uwr.downloadHandler as DownloadHandlerAudioClip)?.audioClip;
 	}
 
 	public static Dictionary<string, AudioClip> LoadMusicFromLevelSet(string levelSetName, TestMode testMode, string levelSetDirectory)
@@ -134,5 +145,19 @@ internal class FileImporter
 			NotFoundFiles.Add(soundName);
 			return null;
 		}*/
+	}
+
+	public static string[] LoadCutsceneDialogues(string cutscenePath) => UltraFlexBallReloadedFileLoader.LoadCutsceneDialogues(cutscenePath);
+
+	public static Sprite[] LoadCutsceneFrames(string cutsceneDirectory)
+	{
+		List<Sprite> frameSprites = new List<Sprite>();
+		for (int i = 1; File.Exists(Path.Combine(cutsceneDirectory, $"frame{i}.jpg")); i++)
+		{
+			Texture2D frameTexture = LoadTexture(Path.Combine(cutsceneDirectory, $"frame{i}"), ".jpg");
+			Sprite frameSprite = Sprite.Create(frameTexture, Rect.MinMaxRect(0, 0, frameTexture.width, frameTexture.height), Vector2.zero, 48.0f, 1, SpriteMeshType.FullRect);
+			frameSprites.Add(frameSprite);
+		}
+		return frameSprites.ToArray();
 	}
 }

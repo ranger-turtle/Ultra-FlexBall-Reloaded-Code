@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Runtime.Serialization.Formatters.Binary;
 
 public class LevelPersistentData
 {
@@ -28,7 +27,7 @@ public class LevelPersistentData
 				if (readMagicNumber == magicNumber)
 				{
 					LevelNum = saveReader.ReadInt32();
-					DateTime dateTime = new DateTime(saveReader.ReadInt32());
+					DateTime dateTime = new DateTime(saveReader.ReadInt64());
 					if (levelSetDateTime != dateTime)
 						return false;
 					else
