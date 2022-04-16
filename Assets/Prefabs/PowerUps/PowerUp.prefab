@@ -10,8 +10,8 @@ GameObject:
   m_Component:
   - component: {fileID: 3603846478229636577}
   - component: {fileID: 6365516809407457552}
-  - component: {fileID: 4995154512284818262}
   - component: {fileID: 5767765215995108895}
+  - component: {fileID: 7242840492424699463}
   - component: {fileID: 5143731766959893530}
   m_Layer: 13
   m_Name: PowerUp
@@ -85,27 +85,6 @@ SpriteRenderer:
   m_WasSpriteAssigned: 0
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
---- !u!50 &4995154512284818262
-Rigidbody2D:
-  serializedVersion: 4
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6720567785936431516}
-  m_BodyType: 1
-  m_Simulated: 1
-  m_UseFullKinematicContacts: 1
-  m_UseAutoMass: 0
-  m_Mass: 4
-  m_LinearDrag: 0
-  m_AngularDrag: 0.05
-  m_GravityScale: 1
-  m_Material: {fileID: 6200000, guid: b3859c01de47a51459b1c88bc1705474, type: 2}
-  m_Interpolate: 0
-  m_SleepingMode: 1
-  m_CollisionDetection: 0
-  m_Constraints: 4
 --- !u!61 &5767765215995108895
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -132,6 +111,27 @@ BoxCollider2D:
   serializedVersion: 2
   m_Size: {x: 0.6666667, y: 0.625}
   m_EdgeRadius: 0
+--- !u!50 &7242840492424699463
+Rigidbody2D:
+  serializedVersion: 4
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6720567785936431516}
+  m_BodyType: 1
+  m_Simulated: 1
+  m_UseFullKinematicContacts: 1
+  m_UseAutoMass: 0
+  m_Mass: 1
+  m_LinearDrag: 0
+  m_AngularDrag: 0.05
+  m_GravityScale: 1
+  m_Material: {fileID: 0}
+  m_Interpolate: 0
+  m_SleepingMode: 1
+  m_CollisionDetection: 0
+  m_Constraints: 4
 --- !u!114 &5143731766959893530
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -144,5 +144,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8d81a8154628d494290158631aad0a15, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  collectSound: {fileID: 0}
-  LastFrameVelocity: {x: 0, y: 0}
+  powerUpName: 
+  CurrentVelocity: {x: 0, y: 0}

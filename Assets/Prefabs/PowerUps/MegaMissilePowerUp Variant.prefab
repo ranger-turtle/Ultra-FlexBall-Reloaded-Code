@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 786ed43f2866e224a9d26e8a7f0007ab, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  probability: 0
-  collectSound: {fileID: 8300000, guid: 51539424e256c25498ea873b43222b0a, type: 3}
+  powerUpName: Mega Missile
+  CurrentVelocity: {x: 0, y: 0}
 --- !u!1001 &2476911458451467899
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -55,7 +55,7 @@ PrefabInstance:
     - target: {fileID: 6720567785936431516, guid: 5d07b9ff9c88bc64ebeb9c92117275b3,
         type: 3}
       propertyPath: m_Name
-      value: MegaMissilePowerUp
+      value: MegaMissilePowerUp Variant
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 5143731766959893530, guid: 5d07b9ff9c88bc64ebeb9c92117275b3, type: 3}

@@ -427,6 +427,63 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 400852659}
   m_CullTransparentMesh: 0
+--- !u!1 &517663517
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 517663519}
+  - component: {fileID: 517663518}
+  m_Layer: 0
+  m_Name: PowerUp Showcase
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!61 &517663518
+BoxCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 517663517}
+  m_Enabled: 1
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_UsedByEffector: 0
+  m_UsedByComposite: 0
+  m_Offset: {x: 1.9828892, y: -0.2602396}
+  m_SpriteTilingProperty:
+    border: {x: 0, y: 0, z: 0, w: 0}
+    pivot: {x: 0, y: 0}
+    oldSize: {x: 0, y: 0}
+    newSize: {x: 0, y: 0}
+    adaptiveTilingThreshold: 0
+    drawMode: 0
+    adaptiveTiling: 0
+  m_AutoTiling: 0
+  serializedVersion: 2
+  m_Size: {x: 17.78833, y: 5.293953}
+  m_EdgeRadius: 0
+--- !u!4 &517663519
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 517663517}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -1.9643079, y: -2.098543, z: -10.013933}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 8
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &604017881
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -560,7 +617,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 942897741}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 647da895914aa2a438375f5b43d35f4d, type: 3}
+  m_Script: {fileID: 11500000, guid: 97617371a0adf1940905096d52675109, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   soundKeys:
@@ -587,6 +644,24 @@ MonoBehaviour:
   - Mega Explosion
   - Protective Barrier Hit
   - Win
+  - Ball Grow
+  - Ball Shrink
+  - Explosive Ball
+  - Split Ball
+  - Penetrating Ball
+  - Descending Bricks
+  - Space Djoel
+  - Extra Paddle
+  - Shooter
+  - Protective Barrier
+  - Explosive Multiplier
+  - Magnet Paddle
+  - Mega Split
+  - Paddle Shrink
+  - Paddle Grow
+  - Regular Multiplier
+  - Mega Missile
+  - Megajocke
   soundClips:
   - {fileID: 8300000, guid: 91fde541ffd76dd46bf1f229ce818946, type: 3}
   - {fileID: 8300000, guid: dc8927d45c5a66448895479f4fbf5f2d, type: 3}
@@ -603,7 +678,7 @@ MonoBehaviour:
   - {fileID: 8300000, guid: f412cba8a0190444bbdc5d1b13fb7896, type: 3}
   - {fileID: 8300000, guid: b6c66107796a8bf44becbdbc2d4f6ec8, type: 3}
   - {fileID: 8300000, guid: f8d6defe88412464cab9e0c3805620c1, type: 3}
-  - {fileID: 8300000, guid: 139a7145e4318f34fb2b8c9aa5d15e13, type: 3}
+  - {fileID: 8300000, guid: 8fcc0948b87bdf34bb27ccf773c60ced, type: 3}
   - {fileID: 8300000, guid: 45d0564a13ccfb74d9db7bc2e25fd3dd, type: 3}
   - {fileID: 8300000, guid: fcc8279cadb279c4eb0577d3289b1390, type: 3}
   - {fileID: 8300000, guid: 144236981f143c74e88e3ccc772f72f4, type: 3}
@@ -611,6 +686,24 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 42fd19d411c626e4f90d3ea46d245238, type: 3}
   - {fileID: 8300000, guid: 1f01b65961ec6324e980a4c2016a13e6, type: 3}
   - {fileID: 8300000, guid: 325e5e44349843f479b1753c85c052f5, type: 3}
+  - {fileID: 8300000, guid: d00010426c63599439d01ff4c1a28c9c, type: 3}
+  - {fileID: 8300000, guid: 1574faac654dbef46a9556fef4f99db3, type: 3}
+  - {fileID: 8300000, guid: 1da476e149a793349b7fdc0058b75610, type: 3}
+  - {fileID: 8300000, guid: 1da476e149a793349b7fdc0058b75610, type: 3}
+  - {fileID: 8300000, guid: 5544499372175b440b9ef88e4a883c3d, type: 3}
+  - {fileID: 8300000, guid: 528b62f50b9411b429c1da1498d6f7e0, type: 3}
+  - {fileID: 8300000, guid: 983b4bc1d0a5a1f4aa6c4dbf085dce86, type: 3}
+  - {fileID: 8300000, guid: 35cef34196ef9194ba1b1d8e947eba14, type: 3}
+  - {fileID: 8300000, guid: bdeb67eb9e6c7a1409bfa15fd47dfd44, type: 3}
+  - {fileID: 8300000, guid: bdeb67eb9e6c7a1409bfa15fd47dfd44, type: 3}
+  - {fileID: 0}
+  - {fileID: 8300000, guid: bdeb67eb9e6c7a1409bfa15fd47dfd44, type: 3}
+  - {fileID: 8300000, guid: 35cef34196ef9194ba1b1d8e947eba14, type: 3}
+  - {fileID: 8300000, guid: 1574faac654dbef46a9556fef4f99db3, type: 3}
+  - {fileID: 8300000, guid: d00010426c63599439d01ff4c1a28c9c, type: 3}
+  - {fileID: 0}
+  - {fileID: 8300000, guid: 51539424e256c25498ea873b43222b0a, type: 3}
+  - {fileID: 8300000, guid: 6a7b0104c761ffa46bba3de8530c5cf4, type: 3}
   normalBrickBreak: {fileID: 8300000, guid: 8c14f6d0ea3e7d243b63fe44319b82ea, type: 3}
   explosiveBrickHit: {fileID: 8300000, guid: fcc8279cadb279c4eb0577d3289b1390, type: 3}
   indestructibleBrickHit: {fileID: 8300000, guid: a463b70b5155c1844b28d79de28f1439,
@@ -875,8 +968,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0cd44c1031e13a943bb63640046fad76, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_UiScaleMode: 0
-  m_ReferencePixelsPerUnit: 100
+  m_UiScaleMode: 1
+  m_ReferencePixelsPerUnit: 48
   m_ScaleFactor: 1
   m_ReferenceResolution: {x: 800, y: 600}
   m_ScreenMatchMode: 0
@@ -885,6 +978,7 @@ MonoBehaviour:
   m_FallbackScreenDPI: 96
   m_DefaultSpriteDPI: 96
   m_DynamicPixelsPerUnit: 1
+  m_PresetInfoIsWorld: 0
 --- !u!223 &1050510799
 Canvas:
   m_ObjectHideFlags: 0
@@ -1159,7 +1253,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 72.95
+  m_fontSize: 80.35
   m_fontSizeBase: 142.4
   m_fontWeight: 400
   m_enableAutoSizing: 1

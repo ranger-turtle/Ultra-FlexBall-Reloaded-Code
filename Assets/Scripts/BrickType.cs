@@ -2,6 +2,7 @@
 using System.IO;
 using UnityEngine;
 
+//BONUS make scripted importer
 public class BrickType
 {
 	private const float unityTexturePixelsForUnit = 48.0f;

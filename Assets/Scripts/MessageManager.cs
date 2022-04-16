@@ -35,7 +35,8 @@ public class MessageManager : MonoBehaviour
 
 	public void ToggleTip()
 	{
-		SettingsManager.SaveBool("showTips", !NeverUseTipToggle.isOn);
+		canShowTips = !NeverUseTipToggle.isOn;
+		SettingsManager.SaveBool("showTips", canShowTips);
 	}
 
 	// Start is called before the first frame update

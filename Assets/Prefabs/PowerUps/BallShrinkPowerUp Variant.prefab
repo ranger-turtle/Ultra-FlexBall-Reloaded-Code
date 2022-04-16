@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 778956fe553dce543a0a513837cb376e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  probability: 1
-  collectSound: {fileID: 8300000, guid: 1574faac654dbef46a9556fef4f99db3, type: 3}
+  powerUpName: Ball Shrink
+  CurrentVelocity: {x: 0, y: 0}
 --- !u!1001 &4176496436708475464
 PrefabInstance:
   m_ObjectHideFlags: 0

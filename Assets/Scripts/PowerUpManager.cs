@@ -16,7 +16,7 @@ public class PowerUpManager : MonoBehaviour
 			Instance = this;
 	}
 
-	private const int maxSeconds = 90;
+	private const int maxSeconds = 60;
 	#endregion
 
 	[SerializeField]

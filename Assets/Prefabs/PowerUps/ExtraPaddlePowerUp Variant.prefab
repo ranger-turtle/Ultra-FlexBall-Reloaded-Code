@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a55de2048b8ec784db6d07f44da4ddc8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  probability: 1
-  collectSound: {fileID: 8300000, guid: 35cef34196ef9194ba1b1d8e947eba14, type: 3}
+  powerUpName: Extra Paddle
+  CurrentVelocity: {x: 0, y: 0}
 --- !u!1001 &7781526781799902409
 PrefabInstance:
   m_ObjectHideFlags: 0

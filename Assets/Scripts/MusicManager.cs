@@ -43,6 +43,8 @@ public class MusicManager : MonoBehaviour
 	{
 		if (Input.GetKeyDown(KeyCode.M))
 			ToggleMute();
+		if (musicSource.clip != null && !musicSource.isPlaying)
+			musicSource.Play();
 	}
 
 	public void LoadLevelSetTextures(string levelSetDirectory, string levelSetFileName, TestMode testMode)

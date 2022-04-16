@@ -5,25 +5,25 @@ public class PowerUp : MonoBehaviour
 {
 	public int Score { get; set; } = 500;
 	[SerializeField]
-	protected AudioClip collectSound;
+	protected string powerUpName;
 	public Vector2 CurrentVelocity;
 	private Vector2 LastFrameVelocity;
 	private readonly float minVelY = -BallManager.minBallSpeed;
 
 	private BoxCollider2D oblivion;
-	private BoxCollider2D leftWallCollider;
-	private BoxCollider2D rightWallCollider;
+	private Bounds leftWallColliderBounds;
+	private Bounds rightWallColliderBounds;
 
 	private void Start()
 	{
 		oblivion = GameObject.Find("Oblivion").GetComponent<BoxCollider2D>();
-		leftWallCollider = GameObject.Find("LeftSideWall").GetComponent<BoxCollider2D>();
-		rightWallCollider = GameObject.Find("RightSideWall").GetComponent<BoxCollider2D>();
+		leftWallColliderBounds = GameObject.Find("LeftSideWall").GetComponent<BoxCollider2D>().bounds;
+		rightWallColliderBounds = GameObject.Find("RightSideWall").GetComponent<BoxCollider2D>().bounds;
 	}
 
 	protected virtual void TriggerAction() => Destroy(gameObject);
 
-	protected virtual void PlaySound() => SoundManager.Instance.PlaySfx(collectSound);
+	protected virtual void PlaySound() => SoundManager.Instance.PlaySfx(powerUpName);
 
 	private void FixedUpdate()
 	{
@@ -62,16 +62,14 @@ public class PowerUp : MonoBehaviour
 	{
 		Bounds powerUpBounds = GetComponent<BoxCollider2D>().bounds;
 		Vector2 normal = Vector2.zero;
-		Bounds leftWallColliderBounds = leftWallCollider.GetComponent<BoxCollider2D>().bounds;
-		Bounds rightWallColliderBounds = rightWallCollider.GetComponent<BoxCollider2D>().bounds;
-		if (powerUpBounds.min.x < leftWallColliderBounds.max.x)
+		if (powerUpBounds.min.x < leftWallColliderBounds.max.x && CurrentVelocity.x <= 0)
 		{
-			transform.position = new Vector3(leftWallColliderBounds.max.x + 0.01f, transform.position.y, transform.position.z);
+			transform.position = new Vector3(leftWallColliderBounds.max.x + 0.05f, transform.position.y, transform.position.z);
 			normal = new Vector2(1, 0);
 		}
-		else if (powerUpBounds.max.x > rightWallColliderBounds.min.x)
+		else if (powerUpBounds.max.x > rightWallColliderBounds.min.x && CurrentVelocity.x >= 0)
 		{
-			transform.position = new Vector3(rightWallColliderBounds.min.x - powerUpBounds.size.x - 0.01f, transform.position.y, transform.position.z);
+			transform.position = new Vector3(rightWallColliderBounds.min.x - powerUpBounds.size.x - 0.05f, transform.position.y, transform.position.z);
 			normal = new Vector2(-1, 0);
 		}
 		if (normal != Vector2.zero)

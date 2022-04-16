@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5f51c17b843466b4ab24501ca0097764, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  probability: 0
-  collectSound: {fileID: 0}
+  powerUpName: Regular Multiplier
+  CurrentVelocity: {x: 0, y: 0}
 --- !u!1001 &438287599676301200
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -55,7 +55,7 @@ PrefabInstance:
     - target: {fileID: 6720567785936431516, guid: 5d07b9ff9c88bc64ebeb9c92117275b3,
         type: 3}
       propertyPath: m_Name
-      value: RegularMultiplierPowerUp
+      value: RegularMultiplierPowerUp Variant
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 5143731766959893530, guid: 5d07b9ff9c88bc64ebeb9c92117275b3, type: 3}

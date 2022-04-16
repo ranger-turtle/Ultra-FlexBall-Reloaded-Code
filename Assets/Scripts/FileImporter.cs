@@ -47,9 +47,9 @@ internal class FileImporter
 		return brickType.OrderBy(bt => bt.Properties.Id).ToArray();
 	}
 
-	public static Dictionary<string, Texture2D> LoadBackgroundsFromLevelSet(string levelSetName, string levelSetDirectory)
+	public static Dictionary<string, Texture2D> LoadTexturesFromLevelSet(string levelSetName, string levelSetDirectory, string assetDirectory)
 	{
-		string backgroundDirectoryPath = GetDirectoryNameInLevelSetDirectory(levelSetDirectory, levelSetName, "Backgrounds");
+		string backgroundDirectoryPath = GetDirectoryNameInLevelSetDirectory(levelSetDirectory, levelSetName, assetDirectory);
 		if (Directory.Exists(backgroundDirectoryPath))
 		{
 			return Directory.EnumerateFiles(backgroundDirectoryPath, "*.png")
@@ -58,6 +58,16 @@ internal class FileImporter
 		}
 		else
 			return null;
+	}
+
+	public static Dictionary<string, Texture2D> LoadBackgroundsFromLevelSet(string levelSetName, string levelSetDirectory)
+	{
+		return LoadTexturesFromLevelSet(levelSetName, levelSetDirectory, "Backgrounds");
+	}
+
+	public static Dictionary<string, Texture2D> LoadWallTexturesFromLevelSet(string levelSetName, string levelSetDirectory)
+	{
+		return LoadTexturesFromLevelSet(levelSetName, levelSetDirectory, "Walls");
 	}
 
 	/// <summary>
@@ -98,7 +108,7 @@ internal class FileImporter
 		UnityWebRequest uwr = UnityWebRequestMultimedia.GetAudioClip(Path.Combine("file://", Application.dataPath, $"../Level sets/", levelSetName, cutsceneName, $"music.ogg"), AudioType.OGGVORBIS);
 		uwr.SendWebRequest();
 
-		if (uwr.isHttpError)
+		if (uwr.result == UnityWebRequest.Result.ProtocolError)
 			throw new FileNotFoundException();
 
 		while (uwr.downloadProgress < 1.0f) ;
@@ -130,7 +140,7 @@ internal class FileImporter
 		UnityWebRequest uwr = UnityWebRequestMultimedia.GetAudioClip(Path.Combine("file://", GetDirectoryNameInLevelSetDirectory(levelSetPath, levelSetName, resourceFolderName), $"{soundName}.{extension}"), audioType);
 			uwr.SendWebRequest();
 
-			if (uwr.isHttpError)
+			if (uwr.result == UnityWebRequest.Result.ProtocolError)
 				throw new FileNotFoundException();
 
 				while (uwr.downloadProgress < 1.0f) ;

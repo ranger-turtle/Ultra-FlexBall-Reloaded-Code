@@ -118,4 +118,6 @@ public class SoundManager : MonoBehaviour
 		if (audioClip != null)
 			audioSource.PlayOneShot(audioClip);
 	}
+
+	public AudioClip GetClipByKey(string key) => levelSoundLibrary[key];
 }

@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9996c126e1d8338428d3717ae5e3b6e1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  probability: 1
-  collectSound: {fileID: 8300000, guid: 528b62f50b9411b429c1da1498d6f7e0, type: 3}
+  powerUpName: Descending Bricks
+  CurrentVelocity: {x: 0, y: 0}
 --- !u!1001 &4025160247947191467
 PrefabInstance:
   m_ObjectHideFlags: 0

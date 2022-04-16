@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: eda07163311fd0c48a8f8f2ff14fc7b6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  probability: 0
-  collectSound: {fileID: 8300000, guid: 5544499372175b440b9ef88e4a883c3d, type: 3}
+  powerUpName: Penetrating Ball
+  CurrentVelocity: {x: 0, y: 0}
 --- !u!1001 &5975949704835208682
 PrefabInstance:
   m_ObjectHideFlags: 0

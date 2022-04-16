@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a250c0979d271554b8d7c5789d31e5f8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  probability: 0
-  collectSound: {fileID: 8300000, guid: bdeb67eb9e6c7a1409bfa15fd47dfd44, type: 3}
+  powerUpName: Magnet Paddle
+  CurrentVelocity: {x: 0, y: 0}
 --- !u!1001 &1026717452643175198
 PrefabInstance:
   m_ObjectHideFlags: 0

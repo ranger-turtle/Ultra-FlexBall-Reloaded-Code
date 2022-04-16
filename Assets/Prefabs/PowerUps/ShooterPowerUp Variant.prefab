@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4d23389ae76a63e408127ecbacab2dbf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  probability: 0
-  collectSound: {fileID: 8300000, guid: bdeb67eb9e6c7a1409bfa15fd47dfd44, type: 3}
+  powerUpName: Shooter
+  CurrentVelocity: {x: 0, y: 0}
 --- !u!1001 &7939583675818407897
 PrefabInstance:
   m_ObjectHideFlags: 0

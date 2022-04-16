@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a9b4e4941af10d24fbea6c4af90a36f1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  probability: 3
-  collectSound: {fileID: 8300000, guid: d00010426c63599439d01ff4c1a28c9c, type: 3}
+  powerUpName: Ball Grow
+  CurrentVelocity: {x: 0, y: 0}
   megaBall: {fileID: 8300000, guid: 6a7b0104c761ffa46bba3de8530c5cf4, type: 3}
 --- !u!1001 &4394796253295481378
 PrefabInstance:

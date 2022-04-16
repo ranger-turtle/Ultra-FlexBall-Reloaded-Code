@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8b907873eac0c084ba4fa5c40ed4f36e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  probability: 0
-  collectSound: {fileID: 8300000, guid: 35cef34196ef9194ba1b1d8e947eba14, type: 3}
+  powerUpName: Mega Split
+  CurrentVelocity: {x: 0, y: 0}
 --- !u!1001 &2135844003898117058
 PrefabInstance:
   m_ObjectHideFlags: 0

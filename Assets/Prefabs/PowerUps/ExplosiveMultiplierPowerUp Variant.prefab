@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2caef203ba0ba844ab6112e7344379fb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  probability: 0
-  collectSound: {fileID: 0}
+  powerUpName: Explosive Multiplier
+  CurrentVelocity: {x: 0, y: 0}
 --- !u!1001 &4044353814999728256
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -21,6 +21,11 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 3603846478229636577, guid: 5d07b9ff9c88bc64ebeb9c92117275b3,
+        type: 3}
+      propertyPath: m_RootOrder
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 3603846478229636577, guid: 5d07b9ff9c88bc64ebeb9c92117275b3,
         type: 3}
       propertyPath: m_LocalPosition.x
@@ -38,6 +43,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3603846478229636577, guid: 5d07b9ff9c88bc64ebeb9c92117275b3,
         type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3603846478229636577, guid: 5d07b9ff9c88bc64ebeb9c92117275b3,
+        type: 3}
       propertyPath: m_LocalRotation.x
       value: 0
       objectReference: {fileID: 0}
@@ -49,16 +59,6 @@ PrefabInstance:
     - target: {fileID: 3603846478229636577, guid: 5d07b9ff9c88bc64ebeb9c92117275b3,
         type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3603846478229636577, guid: 5d07b9ff9c88bc64ebeb9c92117275b3,
-        type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 3603846478229636577, guid: 5d07b9ff9c88bc64ebeb9c92117275b3,
-        type: 3}
-      propertyPath: m_RootOrder
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3603846478229636577, guid: 5d07b9ff9c88bc64ebeb9c92117275b3,
@@ -90,7 +90,7 @@ PrefabInstance:
     - target: {fileID: 6720567785936431516, guid: 5d07b9ff9c88bc64ebeb9c92117275b3,
         type: 3}
       propertyPath: m_Name
-      value: ExplosiveMultiplierPowerUp
+      value: ExplosiveMultiplierPowerUp Variant
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 5143731766959893530, guid: 5d07b9ff9c88bc64ebeb9c92117275b3, type: 3}

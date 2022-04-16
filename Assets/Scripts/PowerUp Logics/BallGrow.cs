@@ -2,17 +2,12 @@
 
 public class BallGrow : PowerUp
 {
-	[SerializeField]
-#pragma warning disable CS0649 // Field 'BallGrow.megaBall' is never assigned to, and will always have its default value null
-	private AudioClip megaBall;
-#pragma warning restore CS0649 // Field 'BallGrow.megaBall' is never assigned to, and will always have its default value null
-
 	protected override void PlaySound()
 	{
 		if (GameManager.Instance.BallSize == BallSize.Big)
-			SoundManager.Instance.PlaySfx(collectSound);
+			SoundManager.Instance.PlaySfx(powerUpName);
 		else
-			SoundManager.Instance.PlaySfx(megaBall);
+			SoundManager.Instance.PlaySfx("Megajocke");
 	}
 
 	protected override void TriggerAction()

@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ce1bda0d67863e045ba1c3a2441f618b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  probability: 1
-  collectSound: {fileID: 8300000, guid: 1da476e149a793349b7fdc0058b75610, type: 3}
+  powerUpName: Split Ball
+  CurrentVelocity: {x: 0, y: 0}
 --- !u!1001 &6771772699456224396
 PrefabInstance:
   m_ObjectHideFlags: 0

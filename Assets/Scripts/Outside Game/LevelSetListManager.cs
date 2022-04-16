@@ -105,6 +105,8 @@ public class LevelSetListManager : MonoBehaviour
 					string levelSetName = levelSetReader.ReadString();
 					levelSetReader.ReadString();
 					levelSetReader.ReadString();
+					levelSetReader.ReadString();
+					levelSetReader.ReadString();
 					//BONUS write internal function after upgrade to next C# version
 					int customSoundInLevelSetSoundLibraryCount = levelSetReader.ReadInt32();
 					for (int i = 0; i < customSoundInLevelSetSoundLibraryCount; i++)

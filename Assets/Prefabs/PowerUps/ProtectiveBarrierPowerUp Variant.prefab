@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 70d783482c33a04469bc58827d810b6c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  probability: 0
-  collectSound: {fileID: 8300000, guid: bdeb67eb9e6c7a1409bfa15fd47dfd44, type: 3}
+  powerUpName: Protective Barrier
+  CurrentVelocity: {x: 0, y: 0}
 --- !u!1001 &875071354124889676
 PrefabInstance:
   m_ObjectHideFlags: 0

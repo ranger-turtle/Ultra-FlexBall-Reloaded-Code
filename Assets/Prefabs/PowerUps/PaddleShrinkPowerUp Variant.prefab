@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 877790e0f92885a42977e8d52752e404, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  probability: 0
-  collectSound: {fileID: 8300000, guid: 1574faac654dbef46a9556fef4f99db3, type: 3}
+  powerUpName: Paddle Shrink
+  CurrentVelocity: {x: 0, y: 0}
 --- !u!1001 &8946107831075505965
 PrefabInstance:
   m_ObjectHideFlags: 0
