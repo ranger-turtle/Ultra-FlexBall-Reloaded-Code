@@ -103,19 +103,16 @@ public class BrickType
 
 		#region audio
 		DefaultSoundLibrary defaultLevelSoundLibrary = DefaultSoundLibrary.Instance;
-		//BONUS convert to switch expression when you upgrade to Visual Studio 2019
-		if (Properties.HitSoundName == "<default>")
-			hitAudio = defaultLevelSoundLibrary.normalBrickBreak;
-		else if (Properties.HitSoundName == "<indestructible>")
-			hitAudio = defaultLevelSoundLibrary.indestructibleBrickHit;
-		else if (Properties.HitSoundName == "<bang>")
-			hitAudio = defaultLevelSoundLibrary.explosiveBrickHit;
-		else if (Properties.HitSoundName == "<multi>")
-			hitAudio = defaultLevelSoundLibrary.changingBrickHit;
-		else if (Properties.HitSoundName == "<plate>")
-			hitAudio = defaultLevelSoundLibrary.plateHit;
-		else if (Properties.HitSoundName != "<none>")
-			hitAudio = SoundManager.Instance.FromLoadedSoundFiles(Properties.HitSoundName);
+		hitAudio = Properties.HitSoundName switch
+		{
+			"<default>" => defaultLevelSoundLibrary.normalBrickBreak,
+			"<indestructible>" => defaultLevelSoundLibrary.indestructibleBrickHit,
+			"<bang>" => defaultLevelSoundLibrary.explosiveBrickHit,
+			"<multi>" => defaultLevelSoundLibrary.changingBrickHit,
+			"<plate>" => defaultLevelSoundLibrary.plateHit,
+			"<none>" => hitAudio,
+			_ => SoundManager.Instance.FromLoadedSoundFiles(Properties.HitSoundName)
+		};
 		#endregion
 	}
 

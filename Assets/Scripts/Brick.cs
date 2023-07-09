@@ -234,7 +234,7 @@ public class Brick : MonoBehaviour
 			{
 				brickBuster.Teleport = GameManager.Instance.TryTeleportBrickBuster(brickBusterObject, BrickProperties.TeleportExits, brickBuster.LastHitNormal);
 				if (BrickProperties.TeleportType == TeleportType.All)
-					GameManager.Instance.GenerateBallsFromTeleporters(brickBusterObject, BrickProperties.TeleportExits, brickBuster.LastHitNormal);
+					GameManager.Instance.GenerateBallsFromTeleporters(BrickProperties.TeleportExits, brickBuster.LastHitNormal);
 			}
 			if (!brickBuster.Teleport)//if brickBuster is not teleported
 			{

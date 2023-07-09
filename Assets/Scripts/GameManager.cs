@@ -185,9 +185,6 @@ public class GameManager : MonoBehaviour
 
 	private Brick[] bricks = new Brick[LevelSet.ROWS * LevelSet.COLUMNS];
 
-	private bool levelTestMode;
-	private bool levelSetTestMode;
-
 	internal BrickType SpaceDjoelBrickType => LevelSetBrickTypes[IceBrickId - 1];
 
 	private LevelPersistentData levelPersistentData;
@@ -560,7 +557,7 @@ public class GameManager : MonoBehaviour
 		Ball[] ballsToClean = FindObjectsOfType<Ball>();
 		Bullet[] bulletsToClean = FindObjectsOfType<Bullet>();
 		SpaceDjoel[] djoelsToClean = FindObjectsOfType<SpaceDjoel>();
-		ParticleSystem[] particleSystems = FindObjectsOfType<ParticleSystem>().Where(p => p.gameObject.tag == "particlesToClean").ToArray();
+		ParticleSystem[] particleSystems = FindObjectsOfType<ParticleSystem>().Where(p => p.gameObject.CompareTag("particlesToClean")).ToArray();
 		foreach (var powerUp in powerUpsToClean)
 			Destroy(powerUp.gameObject);
 		foreach (var ball in ballsToClean)
@@ -606,7 +603,6 @@ public class GameManager : MonoBehaviour
 
 	public void CheckIfLevelIsCompleted()
 	{
-	//	int numberOfBricksRequiredToComplete = bricks.Count(b => ((b?.Hidden == false && b.BrickProperties.RequiredToComplete) || (b?.Hidden == true && b.BrickProperties.RequiredToCompleteWhenHidden)) && !b.SpaceDjoelBrick && !b.Broken);
 		if (numberOfBricksRequiredToComplete <= 0 && !levelCompleted && shutterAnimator.Uncovered)
 		{
 			levelCompleted = true;
@@ -713,7 +709,7 @@ public class GameManager : MonoBehaviour
 		return false;
 	}
 
-	public void GenerateBallsFromTeleporters(GameObject ball, int[] teleportExitIds, Vector2 collisionNormal)
+	public void GenerateBallsFromTeleporters(int[] teleportExitIds, Vector2 collisionNormal)
 	{
 		Brick[] teleporterOutputs = GetTeleportOutputs(teleportExitIds);
 		for (int i = 0; i < teleporterOutputs.Length && BallManager.Instance.BallNumber < BallManager.maxBallNumber; i++)
