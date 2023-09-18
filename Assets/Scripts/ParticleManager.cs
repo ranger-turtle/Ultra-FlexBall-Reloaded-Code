@@ -155,17 +155,13 @@ public class ParticleManager : MonoBehaviour
 
 	private float GetRadiusBasedOnBallSize(BallSize ballSize)
 	{
-		switch (ballSize)//BONUS change to switch expression after C# version upgrade
+		return ballSize switch
 		{
-			case BallSize.Normal:
-				return 0.09f;
-			case BallSize.Big:
-				return 0.15f;
-			case BallSize.Megajocke:
-				return 0.78f;
-			default:
-				return 0;
-		}
+			BallSize.Normal => 0.09f,
+			BallSize.Big => 0.15f,
+			BallSize.Megajocke => 0.78f,
+			_ => 0,
+		};
 	}
 
 	public void GenerateExplosiveBallParticles(GameObject ball, BallSize ballSize)

@@ -2808,7 +2808,7 @@ MonoBehaviour:
   - {fileID: 8300000, guid: f412cba8a0190444bbdc5d1b13fb7896, type: 3}
   - {fileID: 8300000, guid: b6c66107796a8bf44becbdbc2d4f6ec8, type: 3}
   - {fileID: 8300000, guid: f8d6defe88412464cab9e0c3805620c1, type: 3}
-  - {fileID: 8300000, guid: 8fcc0948b87bdf34bb27ccf773c60ced, type: 3}
+  - {fileID: 8300000, guid: 18d692580a30beb4d83e9e389bbf3d7a, type: 3}
   - {fileID: 8300000, guid: 45d0564a13ccfb74d9db7bc2e25fd3dd, type: 3}
   - {fileID: 8300000, guid: fcc8279cadb279c4eb0577d3289b1390, type: 3}
   - {fileID: 8300000, guid: 144236981f143c74e88e3ccc772f72f4, type: 3}
@@ -2834,11 +2834,12 @@ MonoBehaviour:
   - {fileID: 0}
   - {fileID: 8300000, guid: 51539424e256c25498ea873b43222b0a, type: 3}
   - {fileID: 8300000, guid: 6a7b0104c761ffa46bba3de8530c5cf4, type: 3}
-  normalBrickBreak: {fileID: 0}
-  explosiveBrickHit: {fileID: 0}
-  indestructibleBrickHit: {fileID: 0}
-  changingBrickHit: {fileID: 0}
-  plateHit: {fileID: 0}
+  normalBrickBreak: {fileID: 8300000, guid: 8c14f6d0ea3e7d243b63fe44319b82ea, type: 3}
+  explosiveBrickHit: {fileID: 8300000, guid: fcc8279cadb279c4eb0577d3289b1390, type: 3}
+  indestructibleBrickHit: {fileID: 8300000, guid: a463b70b5155c1844b28d79de28f1439,
+    type: 3}
+  changingBrickHit: {fileID: 8300000, guid: 5e02e6f9ac09f8144b0d9be6ecd78337, type: 3}
+  plateHit: {fileID: 8300000, guid: 980b4155f5b9b4146bb86b736a2a2d1b, type: 3}
 --- !u!4 &1009537006
 Transform:
   m_ObjectHideFlags: 0
@@ -5054,6 +5055,7 @@ GameObject:
   - component: {fileID: 1999339842}
   - component: {fileID: 1999339847}
   - component: {fileID: 1999339846}
+  - component: {fileID: 1999339848}
   - component: {fileID: 1999339841}
   - component: {fileID: 1999339845}
   - component: {fileID: 1999339844}
@@ -5314,6 +5316,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 52fbdb9dd1b20f74fa04801b984a3733, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &1999339848
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1999339839}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 572c9e1c47f7f5740af9764fe4230622, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  errorMessage: {fileID: 276982265}
 --- !u!1 &2045660135
 GameObject:
   m_ObjectHideFlags: 0
@@ -5556,7 +5571,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7c9b69e46bd198d4ab764d253066b4d7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  spaceDjoelPrefab: {fileID: 1031074771905869361, guid: ef2c0fa063d95e54298791b903e3ff6f,
+  spaceDjoelPrefab: {fileID: 1031074771905869361, guid: 92b89e4cd8dc8dc46bc8b743c87ad1c5,
     type: 3}
   leftBound: {fileID: 2095394190}
   rightBound: {fileID: 1213519643}

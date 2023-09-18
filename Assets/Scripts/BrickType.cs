@@ -1,5 +1,7 @@
 ﻿using LevelSetData;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using UnityEngine;
 
 //BONUS make scripted importer
@@ -40,24 +42,6 @@ public class BrickType
 		if (!Directory.Exists($"{path}/{brickname}"))
 			throw new DirectoryNotFoundException($@"There is no folder ""{path}/{brickname}"". Please restore folder and add valid framesheet.");
 		Sprites = ReadAnimation(brickname, $"{path}/{brickname}/frames");
-		/*Texture2D brickTexture = FileImporter.LoadTexture($"{path}/{brickname}/frames");
-		float brickTextureWidthToHeightRatio = BrickProperties.PIXEL_WIDTH / BrickProperties.PIXEL_HEIGHT;
-		int singleSpriteHeight = Mathf.RoundToInt(brickTexture.width / brickTextureWidthToHeightRatio);
-		if ((float)brickTexture.width / singleSpriteHeight == brickTextureWidthToHeightRatio)
-		{
-			int units = brickTexture.height / singleSpriteHeight;
-			Sprites = new Sprite[units];
-			brickTexture.filterMode = FilterMode.Bilinear;
-			float unityBrickTextureScaleFactor = brickTexture.width / BrickProperties.PIXEL_WIDTH * 48.0f;
-			BrickUnityWidth = brickTexture.width / unityBrickTextureScaleFactor;
-			BrickUnityHeight = brickTexture.height / unityBrickTextureScaleFactor;
-			for (int i = 0, p = 0; p < brickTexture.height; p += singleSpriteHeight, i++)
-			{
-				Sprites[i] = CreateSpriteFromTexture(brickTexture, singleSpriteHeight, unityBrickTextureScaleFactor, p);
-			}
-		}
-		else
-			throw new InvalidBrickTextureException($"Single brick sprite width and height do not have ratio of 2. Actual ratio: {brickTextureWidthToHeightRatio}, brick name: {brickname}");*/
 
 		#region hitbrick
 		if (File.Exists($"{path}/{brickname}/hit.png"))
@@ -124,15 +108,11 @@ public class BrickType
 		{
 			int units = brickTexture.height / singleSpriteHeight;
 			Sprite[] sprites = new Sprite[units];
-			switch (Properties.GraphicType)
+			brickTexture.filterMode = Properties.GraphicType switch
 			{
-				case GraphicType.Pixel:
-					brickTexture.filterMode = FilterMode.Point;
-					break;
-				default:
-					brickTexture.filterMode = FilterMode.Bilinear;
-					break;
-			}
+				GraphicType.Pixel => FilterMode.Point,
+				_ => FilterMode.Bilinear,
+			};
 			float unityBrickTextureScaleFactor = brickTexture.width / BrickProperties.PIXEL_WIDTH * 48.0f;
 			for (int i = 0, p = brickTexture.height - singleSpriteHeight; p >= 0; p -= singleSpriteHeight, i++)
 			{
@@ -147,5 +127,35 @@ public class BrickType
 	private Sprite CreateSpriteFromTexture(Texture2D brickTexture, int singleSpriteHeight, float unityBrickTextureScaleFactor, int spriteNum)
 	{
 		return Sprite.Create(brickTexture, new Rect(0, spriteNum, brickTexture.width, singleSpriteHeight), new Vector2(0, 1), unityBrickTextureScaleFactor/** * (brickTexture.width / BrickProperties.PIXEL_WIDTH)*/, 1, SpriteMeshType.FullRect);
+	}
+
+	public static BrickType[] LoadBricks(List<string> errorList, string bricksPath = "Default Bricks")
+	{
+		List<BrickType> brickType = new List<BrickType>();
+		string[] brickFilePaths = Directory.GetFiles(bricksPath, "*.brick", SearchOption.TopDirectoryOnly);
+		foreach (string brickFilePath in brickFilePaths)
+		{
+			try
+			{
+				brickType.Add(new BrickType(Path.GetFileNameWithoutExtension(brickFilePath), bricksPath));
+			}
+			catch (DirectoryNotFoundException dnfe)
+			{
+				errorList.Add(dnfe.Message);
+			}
+			catch (FileNotFoundException)
+			{
+				errorList.Add($"Brick saved at {brickFilePath} not found.");
+			}
+			catch (BrickType.InvalidBrickTextureException ibte)
+			{
+				errorList.Add(ibte.Message);
+			}
+			catch (IOException)
+			{
+				errorList.Add($"Brick saved at {brickFilePath} is corrupt.");
+			}
+		}
+		return brickType.OrderBy(bt => bt.Properties.Id).ToArray();
 	}
 }

@@ -17,36 +17,6 @@ internal class FileImporter
 	public static BrickProperties LoadBrickProperties(string brickFilePath) =>
 		UltraFlexBallReloadedFileLoader.LoadBrick($"{brickFilePath}.brick");
 
-	public static BrickType[] LoadBricks(List<string> errorList, string bricksPath = "Default Bricks")
-	{
-		List<BrickType> brickType = new List<BrickType>();
-		string[] brickFilePaths = Directory.GetFiles(bricksPath, "*.brick", SearchOption.TopDirectoryOnly);
-		foreach (string brickFilePath in brickFilePaths)
-		{
-			try
-			{
-				brickType.Add(new BrickType(Path.GetFileNameWithoutExtension(brickFilePath), bricksPath));
-			}
-			catch (DirectoryNotFoundException dnfe)
-			{
-				errorList.Add(dnfe.Message);
-			}
-			catch (FileNotFoundException)
-			{
-				errorList.Add($"Brick saved at {brickFilePath} not found.");
-			}
-			catch (BrickType.InvalidBrickTextureException ibte)
-			{
-				errorList.Add(ibte.Message);
-			}
-			catch (IOException)
-			{
-				errorList.Add($"Brick saved at {brickFilePath} is corrupt.");
-			}
-		}
-		return brickType.OrderBy(bt => bt.Properties.Id).ToArray();
-	}
-
 	public static Dictionary<string, Texture2D> LoadTexturesFromLevelSet(string levelSetName, string levelSetDirectory, string assetDirectory)
 	{
 		string backgroundDirectoryPath = GetDirectoryNameInLevelSetDirectory(levelSetDirectory, levelSetName, assetDirectory);

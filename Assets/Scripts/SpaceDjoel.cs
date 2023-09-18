@@ -3,6 +3,7 @@ using System.Linq;
 using UnityEngine;
 
 //FIXME prevent getting Djoel out of walls (e.g. after teleport, as you have already done with ball)
+//FIXME fix the invalid movement
 public class SpaceDjoel : MonoBehaviour, IBrickBuster
 {
 	[SerializeField]

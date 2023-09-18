@@ -16,7 +16,7 @@ public class GameLoader : MonoBehaviour
 		if (LoadedGameData.BurnAnimation == null)
 		{
 			LoadedGameData.BurnAnimation = burnAnimation;
-			LoadedGameData.DefaultBrickTypes = FileImporter.LoadBricks(null);
+			LoadedGameData.DefaultBrickTypes = BrickType.LoadBricks(null);
 		}
 		if (LoadedGameData.TestMode != TestMode.None)
 			StartCoroutine(WaitForUncover());

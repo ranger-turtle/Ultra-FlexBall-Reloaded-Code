@@ -59,7 +59,7 @@ public class Brick : MonoBehaviour
 	internal void ChangeBrickType(int newBrickId)
 	{
 		bool previousRequiredToComplete = (brickType.Properties.RequiredToComplete && !Hidden) || (brickType.Properties.RequiredToCompleteWhenHidden && Hidden);
-		brickType = GameManager.Instance.GetBrickTypeById(newBrickId);
+		brickType = BrickManager.Instance.GetBrickTypeById(newBrickId);
 		bool nextRequiredToComplete = (brickType.Properties.RequiredToComplete && !brickType.Properties.Hidden) || brickType.Properties.RequiredToCompleteWhenHidden;
 		//hitSound = FileImporter.LoadAudioClip("classic", "brickbreak");
 		if (nextRequiredToComplete != previousRequiredToComplete)
@@ -220,7 +220,7 @@ public class Brick : MonoBehaviour
 	}
 
 	//private void OnCollisionEnter2D(Collision2D collision)
-	private void Collision(GameObject brickBusterObject)
+	public void Collision(GameObject brickBusterObject)
 	{
 		//Debug.Log("Brick hit");
 		bool isBrickBusterABall = brickBusterObject.GetComponent<Ball>();
@@ -312,8 +312,6 @@ public class Brick : MonoBehaviour
 			}
 			else
 			{
-				/*if (brickType.HasHitSprite)
-					StartCoroutine(DisplayHitSprite());*/
 				ChangeToNextBrick();
 				PrepareBrickAnimation();
 			}
@@ -525,7 +523,7 @@ public class Brick : MonoBehaviour
 	private IEnumerator IcyFadingCoroutine()
 	{
 		SpaceDjoelBrick = true;
-		brickType = GameManager.Instance.SpaceDjoelBrickType;
+		brickType = BrickManager.Instance.SpaceDjoelBrickType;
 		SpriteRenderer spriteRenderer = GetComponent<SpriteRenderer>();
 		spriteRenderer.sprite = brickType.FirstSprite;
 		while (spriteRenderer.color.a > 0)

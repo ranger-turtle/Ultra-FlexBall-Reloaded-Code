@@ -28,11 +28,7 @@ public class GameManager : MonoBehaviour
 	}
 	#endregion
 
-	private const int RegularExplosiveId = 18;
-	private const int IceBrickId = 87;//Id of brick type to which bricks hit by Space Djoels turn to
-
 	[SerializeField]
-#pragma warning disable CS0649 // Field 'GameManager.shutterAnimator' is never assigned to, and will always have its default value null
 	private ShutterAnimationManager shutterAnimator;
 	[SerializeField]
 	private Text scoreText;
@@ -42,7 +38,6 @@ public class GameManager : MonoBehaviour
 	private GameObject hud;
 	[SerializeField]
 	private HUDManager hudManager;
-#pragma warning restore CS0649 // Field 'GameManager.hudManager' is never assigned to, and will always have its default value null
 	[SerializeField]
 	private ErrorMessage errorMessage;
 	[SerializeField]
@@ -51,7 +46,7 @@ public class GameManager : MonoBehaviour
 	private LevelSet CurrentLevelSet;
 	private int LevelIndex;
 
-	private int numberOfBricksRequiredToComplete;
+	public int NumberOfBricksRequiredToComplete { get; private set; }
 	private bool levelCompleted;
 
 	private int paddles = 3;
@@ -181,11 +176,7 @@ public class GameManager : MonoBehaviour
 	[SerializeField]
 	private GameObject brickPrefab;
 
-	private BrickType[] LevelSetBrickTypes;
-
 	private Brick[] bricks = new Brick[LevelSet.ROWS * LevelSet.COLUMNS];
-
-	internal BrickType SpaceDjoelBrickType => LevelSetBrickTypes[IceBrickId - 1];
 
 	private LevelPersistentData levelPersistentData;
 
@@ -279,29 +270,6 @@ public class GameManager : MonoBehaviour
 		}
 	}
 
-	private void CheckIfIdsArePresent()
-	{
-		bool anyMissingId = false;
-		IEnumerable<int> loadedBrickTypeIds = LevelSetBrickTypes.Select(bt => bt.Properties.Id);
-		foreach (Level level in CurrentLevelSet.Levels)
-		{
-			for (int i = 0; i < LevelSet.ROWS; i++)
-			{
-				for (int j = 0; j < LevelSet.COLUMNS; j++)
-				{
-					if (level.Bricks[i, j].BrickId != 0 && !loadedBrickTypeIds.Contains(level.Bricks[i, j].BrickId))
-					{
-						level.Bricks[i, j].BrickId = 0;
-						anyMissingId = true;
-					}
-				}
-			}
-		}
-		//TODO do more precise brick error handling (no info about failed bricks is so far)
-		if (anyMissingId)
-			errorMessage.Show("Some bricks in levels belong to types which are not loaded. They will be ignored. Please check your bricks with level editor.");
-	}
-
 	private void TryLoadCharacterMessage(LevelProperties levelProperties)
 	{
 		if (levelProperties.CharacterName != "<none>")
@@ -317,10 +285,11 @@ public class GameManager : MonoBehaviour
 		quoteManager.Show(levelProperties.CharacterName, avatarSprite, levelProperties.Quote, levelProperties.IsQuoteTip);
 	}
 
-	public void InitLevelSet(LevelSet levelSet, BrickType[] defaultBrickTypes, BrickType[] customBrickTypes, LevelPersistentData levelPersistentData)
+	public void InitLevelSet(LevelSet levelSet, LevelPersistentData levelPersistentData)
 	{
 		CurrentLevelSet = levelSet;
 		LoadLevelSetExternalFiles();
+
 
 		this.levelPersistentData = levelPersistentData;
 		LevelIndex = levelPersistentData.LevelNum;
@@ -328,27 +297,20 @@ public class GameManager : MonoBehaviour
 		paddleNumberText.text = paddles.ToString();
 		AddToScore(levelPersistentData.CurrentScore);
 
-		PrepareBrickTypes(defaultBrickTypes, customBrickTypes);
+		BrickManager.Instance.PrepareBrickTypes(levelSet);
 
 		InitLevel();
 	}
 
-	public void InitLevelSet(LevelSet levelSet, BrickType[] defaultBrickTypes, BrickType[] customBrickTypes, int startLevelNum)
+	public void InitLevelSet(LevelSet levelSet, int startLevelNum)
 	{
 		CurrentLevelSet = levelSet;
 		LevelIndex = startLevelNum;
 		LoadLevelSetExternalFiles();
 
-		PrepareBrickTypes(defaultBrickTypes, customBrickTypes);
+		BrickManager.Instance.PrepareBrickTypes(levelSet);
 
 		InitLevel();
-	}
-
-	private void PrepareBrickTypes(BrickType[] defaultBrickTypes, BrickType[] customBrickTypes)
-	{
-		LevelSetBrickTypes = defaultBrickTypes.Concat(customBrickTypes).ToArray();
-		CheckIfIdsArePresent();
-		ParticleManager.Instance.CreateBrickParticles(LevelSetBrickTypes);
 	}
 
 	private void InitLevel()
@@ -371,7 +333,7 @@ public class GameManager : MonoBehaviour
 
 	private void GenerateBrick(int brickTypeId, int brickX, int brickY, bool tryHide = true, bool spaceDjoelBrick = false)
 	{
-		BrickType brickType = GetBrickTypeById(brickTypeId);
+		BrickType brickType = BrickManager.Instance.GetBrickTypeById(brickTypeId);
 		Vector3 position = new Vector3(firstBrickPos.transform.position.x + (brickX * BrickType.BrickUnityWidth), firstBrickPos.transform.position.y - (brickY * BrickType.BrickUnityHeight), 4.2f);
 		GameObject brick = Instantiate(brickPrefab, position: position, Quaternion.identity);
 		brick.GetComponent<SpriteRenderer>().sprite = brickType.FirstSprite;
@@ -393,9 +355,7 @@ public class GameManager : MonoBehaviour
 		DecreaseMegaMissiles();
 	}
 
-	internal Brick GetBrickByCoordinates(int x, int y) => bricks[GetBrickIndex(x, y)];
-
-	internal BrickType GetBrickTypeById(int newBrickId) => LevelSetBrickTypes.First(b => b.Properties.Id == newBrickId);
+	public Brick GetBrickByCoordinates(int x, int y) => bricks[GetBrickIndex(x, y)];
 
 	private int GetBrickIndex(int x, int y) => x + (y * LevelSet.COLUMNS);
 
@@ -416,7 +376,7 @@ public class GameManager : MonoBehaviour
 		}
 	}
 
-	//points can be negative so Mathf.Max invocation is necessary
+	//points parameter can be negative so Mathf.Max invocation is necessary
 	internal void AddToScore(int points) => scoreText.text = $"{Mathf.Max(int.Parse(scoreText.text) + points, 0)}";
 
 	public void IncreaseBall()
@@ -469,11 +429,21 @@ public class GameManager : MonoBehaviour
 	{
 		GameObject explosion = Instantiate(explosionPrefab, explosionPosition, Quaternion.identity);
 		explosion.GetComponent<BoxCollider2D>().size = new Vector2(spriteBounds.x * (radius * 2 + 1) - 0.1f, spriteBounds.y * (radius * 2 + 1) - 0.1f);
-		///explosion.GetComponent<Explosion>().Activate();
 	}
 
 	public void DetonateOrChangeBrick(int oldBrickTypeId, int newBrickTypeId, DetonationRange detonationRange)
 	{
+		static void DetonateOrChange(int newBrickTypeId, Brick chosenBrick)
+		{
+			if (newBrickTypeId == 0)//If it's detonating brick
+			{
+				chosenBrick.TryIncreasePowerUpField();
+				chosenBrick.Break(chosenBrick.BrickProperties.Points, null, true);
+			}
+			else
+				chosenBrick.ChangeBrickType(newBrickTypeId);
+		}
+
 		List<Brick> bricks = this.bricks.Where(b => b?.brickType.Properties.Id == oldBrickTypeId).ToList();
 		if (bricks.Count > 0)
 		{
@@ -483,26 +453,11 @@ public class GameManager : MonoBehaviour
 				case DetonationRange.One:
 					int chosenIndex = UnityEngine.Random.Range(0, bricks.Count);
 					Brick chosenBrick = bricks[chosenIndex];
-					//BONUS make internal function with it
-					if (newBrickTypeId == 0)//If it's detonating brick
-					{
-						chosenBrick.TryIncreasePowerUpField();
-						chosenBrick.Break(chosenBrick.BrickProperties.Points, null, true);
-					}
-					else
-						chosenBrick.ChangeBrickType(newBrickTypeId);
+					DetonateOrChange(newBrickTypeId, chosenBrick);
 					break;
 				case DetonationRange.All:
 					foreach (Brick brick in bricks)
-					{
-						if (newBrickTypeId == 0)//If it's detonating brick
-						{
-							brick.TryIncreasePowerUpField();
-							brick.Break(brick.BrickProperties.Points, null, true);
-						}
-						else
-							brick.ChangeBrickType(newBrickTypeId);
-					}
+						DetonateOrChange(newBrickTypeId, brick);
 					break;
 				default:
 					break;
@@ -546,9 +501,9 @@ public class GameManager : MonoBehaviour
 
 	public void EraseBricks()
 	{
-		for (int i = 0; i < bricks.Length; i++)
-			if (bricks[i])
-				DisposeBrick(bricks[i]);
+		foreach (Brick brick in bricks)
+			if (brick)
+				DisposeBrick(brick);
 	}
 
 	public void CleanLevel()
@@ -592,18 +547,22 @@ public class GameManager : MonoBehaviour
 	{
 		bricks[brick.x + (brick.y * LevelSet.COLUMNS)] = null;
 		Destroy(brick.gameObject);
-		//Debug.Log(bricks.Count);
+#if UNITY_EDITOR
+		Debug.Log(bricks.Length);
+#endif
 	}
 
 	public void DecrementRequiredBricks()
 	{
-		numberOfBricksRequiredToComplete--;
-		Debug.Log($"Bricks left: {numberOfBricksRequiredToComplete}");
+		NumberOfBricksRequiredToComplete--;
+#if UNITY_EDITOR
+		Debug.Log($"Bricks left: {NumberOfBricksRequiredToComplete}");
+#endif
 	}
 
 	public void CheckIfLevelIsCompleted()
 	{
-		if (numberOfBricksRequiredToComplete <= 0 && !levelCompleted && shutterAnimator.Uncovered)
+		if (NumberOfBricksRequiredToComplete <= 0 && !levelCompleted && shutterAnimator.Uncovered)
 		{
 			levelCompleted = true;
 			CoverSceneAndDoAction(CleanAfterFinishingLevel, "Win");
@@ -622,13 +581,15 @@ public class GameManager : MonoBehaviour
 
 	private void SetBricksRequiredToCompleteNumber()
 	{
-		numberOfBricksRequiredToComplete = bricks.Count(b => ((b?.Hidden == false && b.BrickProperties.RequiredToComplete) || (b?.Hidden == true && b.BrickProperties.RequiredToCompleteWhenHidden)) && !b.SpaceDjoelBrick && !b.Broken);
+		NumberOfBricksRequiredToComplete = bricks.Count(b => ((b?.Hidden == false && b.BrickProperties.RequiredToComplete) || (b?.Hidden == true && b.BrickProperties.RequiredToCompleteWhenHidden)) && !b.SpaceDjoelBrick && !b.Broken);
 	}
 
 	public void IncrementRequiredBricks()
 	{
-		numberOfBricksRequiredToComplete++;
-		Debug.Log($"Bricks left: {numberOfBricksRequiredToComplete}");
+		NumberOfBricksRequiredToComplete++;
+#if UNITY_EDITOR
+		Debug.Log($"Bricks left: {NumberOfBricksRequiredToComplete}");
+#endif
 	}
 
 	public void IncreaseShooterLevel()
@@ -928,15 +889,15 @@ public class GameManager : MonoBehaviour
 		{
 			int x = UnityEngine.Random.Range(1, LevelSet.COLUMNS - 1);
 			int y = UnityEngine.Random.Range(1, LevelSet.ROWS - 1);
-			tmpBrickLayer[GetBrickIndex(x, y)] = new TemporaryLayerData(RegularExplosiveId);
+			tmpBrickLayer[GetBrickIndex(x, y)] = new TemporaryLayerData(BrickManager.RegularExplosiveId);
 			if (y != 0 && bricks[GetBrickIndex(x, y - 1)]?.BrickProperties.CanBeOverridenByExplosiveMultiplier != false)
-				tmpBrickLayer[GetBrickIndex(x, y - 1)] = new TemporaryLayerData(RegularExplosiveId);
+				tmpBrickLayer[GetBrickIndex(x, y - 1)] = new TemporaryLayerData(BrickManager.RegularExplosiveId);
 			if (x != LevelSet.COLUMNS - 1 && bricks[GetBrickIndex(x + 1, y)]?.BrickProperties.CanBeOverridenByExplosiveMultiplier != false)
-				tmpBrickLayer[GetBrickIndex(x + 1, y)] = new TemporaryLayerData(RegularExplosiveId);
+				tmpBrickLayer[GetBrickIndex(x + 1, y)] = new TemporaryLayerData(BrickManager.RegularExplosiveId);
 			if (y != LevelSet.ROWS - 1 && bricks[GetBrickIndex(x, y + 1)]?.BrickProperties.CanBeOverridenByExplosiveMultiplier != false)
-				tmpBrickLayer[GetBrickIndex(x, y + 1)] = new TemporaryLayerData(RegularExplosiveId);
+				tmpBrickLayer[GetBrickIndex(x, y + 1)] = new TemporaryLayerData(BrickManager.RegularExplosiveId);
 			if (x != 0 && bricks[GetBrickIndex(x - 1, y)]?.BrickProperties.CanBeOverridenByExplosiveMultiplier != false)
-				tmpBrickLayer[GetBrickIndex(x - 1, y)] = new TemporaryLayerData(RegularExplosiveId);
+				tmpBrickLayer[GetBrickIndex(x - 1, y)] = new TemporaryLayerData(BrickManager.RegularExplosiveId);
 		}
 		RenderTemporaryBrickLayer(tmpBrickLayer);
 	}
